@@ -1120,7 +1120,7 @@ describe("ChatCommon", () => {
                 finishStream()
             })
 
-            expect(onStreamingComplete).toHaveBeenCalledOnce()
+            expect(onStreamingComplete).toHaveBeenCalledTimes(1)
             expect(within(conversation as HTMLElement).getAllByText(query)).toHaveLength(1)
             expect(within(conversation as HTMLElement).getByText(finalAnswer)).toBeInTheDocument()
         })
