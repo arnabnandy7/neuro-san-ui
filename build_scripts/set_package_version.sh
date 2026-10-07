@@ -78,10 +78,11 @@ else
             const fs = require('fs');
             const file = process.argv[1];
             const version = process.argv[2];
+            const indent = Number(process.argv[3]);
             try {
                 const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
                 pkg.version = version;
-                fs.writeFileSync(file, JSON.stringify(pkg, null, Number(process.argv[3])) + '\n');
+                fs.writeFileSync(file, JSON.stringify(pkg, null, indent) + '\n');
                 console.log('Successfully set version to ' + version + ' in ' + file + ' (using Node.js)');
             } catch (err) {
                 console.error('Error: Failed to update version using Node.js:', err.message);
