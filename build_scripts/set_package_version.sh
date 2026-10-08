@@ -52,45 +52,21 @@ if [[ ! -f "$PRETTIER_RC" ]]; then
     echo "Error: Prettier config not found: $PRETTIER_RC" >&2
     exit 1
 fi
-# Default of 2 matches Prettier's own default when tabWidth is unset
-if command -v jq &> /dev/null; then
-    PRETTIER_TAB_WIDTH="$(jq -r '.tabWidth // 2' "$PRETTIER_RC")"
-elif command -v node &> /dev/null; then
-    PRETTIER_TAB_WIDTH="$(node -p "require(process.argv[1]).tabWidth ?? 2" "$PRETTIER_RC")"
-else
-    echo "Error: Neither jq nor node is available. Cannot read $PRETTIER_RC" >&2
-    exit 1
-fi
 
-if command -v jq &> /dev/null; then
-    TMP_FILE="$(mktemp)"
-    if jq --indent "$PRETTIER_TAB_WIDTH" --arg v "$VERSION" '.version = $v' "$PACKAGE_JSON" > "$TMP_FILE"; then
-        mv "$TMP_FILE" "$PACKAGE_JSON"
-        echo "Successfully set version to $VERSION in $PACKAGE_JSON (using jq)"
-    else
-        rm -f "$TMP_FILE"
-        echo "Error: Failed to update version using jq" >&2
-        exit 1
-    fi
-else
-    if command -v node &> /dev/null; then
-        node -e "
-            const fs = require('fs');
-            const file = process.argv[1];
-            const version = process.argv[2];
-            const indent = Number(process.argv[3]);
-            try {
-                const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
-                pkg.version = version;
-                fs.writeFileSync(file, JSON.stringify(pkg, null, indent) + '\n');
-                console.log('Successfully set version to ' + version + ' in ' + file + ' (using Node.js)');
-            } catch (err) {
-                console.error('Error: Failed to update version using Node.js:', err.message);
-                process.exit(1);
-            }
-        " "$PACKAGE_JSON" "$VERSION" "$PRETTIER_TAB_WIDTH"
-    else
-        echo "Error: Neither jq nor node is available. Cannot update package.json" >&2
-        exit 1
-    fi
-fi
+node -e "
+    const fs = require('fs');
+    const file = process.argv[1];
+    const version = process.argv[2];
+    const prettierRc = process.argv[3];
+    try {
+        // Default of 2 matches Prettier's own default when tabWidth is unset
+        const indent = JSON.parse(fs.readFileSync(prettierRc, 'utf8')).tabWidth ?? 2;
+        const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+        pkg.version = version;
+        fs.writeFileSync(file, JSON.stringify(pkg, null, indent) + '\n');
+        console.log('Successfully set version to ' + version + ' in ' + file);
+    } catch (err) {
+        console.error('Error: Failed to update version:', err.message);
+        process.exit(1);
+    }
+" "$PACKAGE_JSON" "$VERSION" "$PRETTIER_RC"
