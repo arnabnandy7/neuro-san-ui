@@ -407,12 +407,51 @@ describe("ChatCommon", () => {
             await waitFor(() => expect(mockSendFunction).toHaveBeenCalledWith(fullStrToCheck))
         })
 
-        it("Should keep very long prompts scrollable", () => {
-            renderChatCommonComponent()
+        it("Should keep very long prompts scrollable", async () => {
+            const rowHeight = 20
+            const visibleRows = 8
+            const promptRows = 12
+            const longPrompt = Array.from({length: promptRows}, (_, index) => `Line ${index + 1}`).join("\n")
+            const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "scrollHeight")
+            const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "clientHeight")
 
-            const userInput = screen.getByPlaceholderText(CHAT_WITH_MATH_GUY)
+            Object.defineProperty(HTMLTextAreaElement.prototype, "scrollHeight", {
+                configurable: true,
+                get() {
+                    // eslint-disable-next-line unicorn/no-this-outside-of-class -- property getter needs its element
+                    return this.value.split("\n").length * rowHeight
+                },
+            })
+            Object.defineProperty(HTMLTextAreaElement.prototype, "clientHeight", {
+                configurable: true,
+                get() {
+                    // eslint-disable-next-line unicorn/no-this-outside-of-class -- property getter needs its element
+                    return Number.parseFloat(this.style.height) || rowHeight
+                },
+            })
 
-            expect(userInput).toHaveStyle({overflowY: "auto"})
+            try {
+                renderChatCommonComponent()
+
+                const userInput = screen.getByPlaceholderText<HTMLTextAreaElement>(CHAT_WITH_MATH_GUY)
+                await user.click(userInput)
+                await user.paste(longPrompt)
+
+                await waitFor(() => expect(userInput.clientHeight).toBe(visibleRows * rowHeight))
+                expect(userInput).toHaveValue(longPrompt)
+                expect(userInput.scrollHeight).toBe(promptRows * rowHeight)
+                expect(userInput.scrollHeight).toBeGreaterThan(userInput.clientHeight)
+
+                userInput.scrollTop = rowHeight * 2
+                expect(userInput.scrollTop).toBe(rowHeight * 2)
+            } finally {
+                if (originalScrollHeight) {
+                    Object.defineProperty(HTMLTextAreaElement.prototype, "scrollHeight", originalScrollHeight)
+                }
+                if (originalClientHeight) {
+                    Object.defineProperty(HTMLTextAreaElement.prototype, "clientHeight", originalClientHeight)
+                }
+            }
         })
 
         it("Should refuse interaction when no target agent is set", async () => {
