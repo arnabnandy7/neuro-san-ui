@@ -16,7 +16,7 @@ limitations under the License.
 
 import {AIMessage} from "@langchain/core/messages"
 import {createTheme} from "@mui/material/styles"
-import {act, render, screen, waitFor, within} from "@testing-library/react"
+import {act, isInaccessible, render, screen, waitFor, within} from "@testing-library/react"
 import {userEvent, UserEvent} from "@testing-library/user-event"
 import {createRef, Ref} from "react"
 
@@ -1056,8 +1056,7 @@ describe("ChatCommon", () => {
             await sendQuery(TEST_AGENT_MATH_GUY, "Test query")
 
             await screen.findByText("Show Thinking")
-            const conversation = document.querySelector(`#${defaultProps.id}-conversation`)
-            expect(within(conversation as HTMLElement).getByText("Test query")).toBeInTheDocument()
+            expect(screen.getAllByText("Test query").filter((element) => !isInaccessible(element))).toHaveLength(1)
             const thinkingSection = document.querySelector(`#${defaultProps.id}-thinking`)
             expect(thinkingSection).toBeInTheDocument()
 
@@ -1073,11 +1072,11 @@ describe("ChatCommon", () => {
                 ).toBeInTheDocument()
             }
         })
-    })
 
-    describe("Query echo", () => {
         it.each(["sample", "typed"])("Should retain a %s query throughout a long response", async (source) => {
-            const query = "Explain the airline policy"
+            // Use a long query so the sample chip is truncated. Visibility checks exclude collapsed chat history.
+            const query =
+                "Explain the airline policy for changing international flights, including fees and refund eligibility."
             const finalAnswer = "Here is the airline policy."
             const onStreamingComplete = vi.fn()
             let streamChunk: SendChatQueryCallback
@@ -1094,16 +1093,15 @@ describe("ChatCommon", () => {
             renderChatCommonComponent({sampleQueries: [query], onStreamingComplete})
 
             if (source === "sample") {
-                await user.click(screen.getByText(query))
+                await user.click(screen.getByRole("button", {name: `${query.slice(0, QUERY_TRUNCATE_LENGTH)}...`}))
             } else {
                 await sendQuery(TEST_AGENT_MATH_GUY, query)
             }
 
-            const conversation = document.querySelector(`#${defaultProps.id}-conversation`)
-            expect(within(conversation as HTMLElement).getByText(query)).toBeInTheDocument()
+            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
 
             await act(async () => {
-                for (let index = 0; index <= MAX_TURNS; index += 1) {
+                for (let index = 0; index < 2 * MAX_TURNS; index += 1) {
                     streamChunk(
                         JSON.stringify({response: getResponseMessage(ChatMessageType.AGENT, `Progress ${index}`)})
                     )
@@ -1114,15 +1112,15 @@ describe("ChatCommon", () => {
             })
 
             expect(onStreamingComplete).not.toHaveBeenCalled()
-            expect(within(conversation as HTMLElement).getAllByText(query)).toHaveLength(1)
+            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
 
             await act(async () => {
                 finishStream()
             })
 
             expect(onStreamingComplete).toHaveBeenCalledTimes(1)
-            expect(within(conversation as HTMLElement).getAllByText(query)).toHaveLength(1)
-            expect(within(conversation as HTMLElement).getByText(finalAnswer)).toBeInTheDocument()
+            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
+            expect(screen.getAllByText(finalAnswer).filter((element) => !isInaccessible(element))).toHaveLength(1)
         })
     })
 
