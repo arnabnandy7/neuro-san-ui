@@ -1224,12 +1224,17 @@ export const ChatCommon = ({ref, ...props}: ChatCommonProps & {ref?: Ref<ChatCom
                     handleSend={handleSend}
                     sampleQueries={sampleQueries}
                 />
-                <Conversation
-                    id={id}
-                    includeAgentMessages={!givesFinalAnswer(selectedNetwork)}
-                    shouldWrapOutput={shouldWrapOutput}
-                    turns={turns}
-                />
+                <Box
+                    role="region"
+                    aria-label="Current conversation"
+                >
+                    <Conversation
+                        id={id}
+                        includeAgentMessages={!givesFinalAnswer(selectedNetwork)}
+                        shouldWrapOutput={shouldWrapOutput}
+                        turns={turns}
+                    />
+                </Box>
                 {getThinking()}
                 {getWorkingSpinner()}
                 {getControlButtons()}

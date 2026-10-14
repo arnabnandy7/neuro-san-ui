@@ -16,7 +16,7 @@ limitations under the License.
 
 import {AIMessage} from "@langchain/core/messages"
 import {createTheme} from "@mui/material/styles"
-import {act, isInaccessible, render, screen, waitFor, within} from "@testing-library/react"
+import {act, render, screen, waitFor, within} from "@testing-library/react"
 import {userEvent, UserEvent} from "@testing-library/user-event"
 import {createRef, Ref} from "react"
 
@@ -1056,7 +1056,7 @@ describe("ChatCommon", () => {
             await sendQuery(TEST_AGENT_MATH_GUY, "Test query")
 
             await screen.findByText("Show Thinking")
-            expect(screen.getAllByText("Test query").filter((element) => !isInaccessible(element))).toHaveLength(1)
+            within(screen.getByRole("region", {name: "Current conversation"})).getByText("Test query")
             const thinkingSection = document.querySelector(`#${defaultProps.id}-thinking`)
             expect(thinkingSection).toBeInTheDocument()
 
@@ -1074,7 +1074,7 @@ describe("ChatCommon", () => {
         })
 
         it.each(["sample", "typed"])("Should retain a %s query throughout a long response", async (source) => {
-            // Use a long query so the sample chip is truncated. Visibility checks exclude collapsed chat history.
+            // Use a long query so the sample chip is truncated.
             const query =
                 "Explain the airline policy for changing international flights, including fees and refund eligibility."
             const finalAnswer = "Here is the airline policy."
@@ -1091,14 +1091,15 @@ describe("ChatCommon", () => {
             })
 
             renderChatCommonComponent({sampleQueries: [query], onStreamingComplete})
+            const conversation = within(screen.getByRole("region", {name: "Current conversation"}))
 
             if (source === "sample") {
-                await user.click(screen.getByRole("button", {name: `${query.slice(0, QUERY_TRUNCATE_LENGTH)}...`}))
+                await user.click(screen.getByRole("button", {name: `Click to send query: "${query}"`}))
             } else {
                 await sendQuery(TEST_AGENT_MATH_GUY, query)
             }
 
-            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
+            expect(conversation.getAllByText(query)).toHaveLength(1)
 
             await act(async () => {
                 for (let index = 0; index < 2 * MAX_TURNS; index += 1) {
@@ -1112,15 +1113,15 @@ describe("ChatCommon", () => {
             })
 
             expect(onStreamingComplete).not.toHaveBeenCalled()
-            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
+            expect(conversation.getAllByText(query)).toHaveLength(1)
 
             await act(async () => {
                 finishStream()
             })
 
             expect(onStreamingComplete).toHaveBeenCalledTimes(1)
-            expect(screen.getAllByText(query).filter((element) => !isInaccessible(element))).toHaveLength(1)
-            expect(screen.getAllByText(finalAnswer).filter((element) => !isInaccessible(element))).toHaveLength(1)
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+            conversation.getByText(finalAnswer)
         })
     })
 
