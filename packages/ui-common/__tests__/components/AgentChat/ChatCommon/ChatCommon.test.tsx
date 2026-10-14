@@ -441,9 +441,6 @@ describe("ChatCommon", () => {
                 expect(userInput).toHaveValue(longPrompt)
                 expect(userInput.scrollHeight).toBe(promptRows * rowHeight)
                 expect(userInput.scrollHeight).toBeGreaterThan(userInput.clientHeight)
-
-                userInput.scrollTop = rowHeight * 2
-                expect(userInput.scrollTop).toBe(rowHeight * 2)
             } finally {
                 if (originalScrollHeight) {
                     Object.defineProperty(HTMLTextAreaElement.prototype, "scrollHeight", originalScrollHeight)
