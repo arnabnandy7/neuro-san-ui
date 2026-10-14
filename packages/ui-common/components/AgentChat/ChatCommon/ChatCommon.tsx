@@ -417,7 +417,8 @@ export const ChatCommon = ({ref, ...props}: ChatCommonProps & {ref?: Ref<ChatCom
     const addTurn = useCallback((turn: ConversationTurn) => {
         setTurns((current) => {
             const next = [...current, turn]
-            return next.length > MAX_TURNS ? next.slice(-MAX_TURNS) : next
+            // Keep user queries visible even when a network streams more than MAX_TURNS responses.
+            return next.filter((item, index) => item.role === MessageRole.User || index >= next.length - MAX_TURNS)
         })
     }, [])
 
@@ -1223,12 +1224,17 @@ export const ChatCommon = ({ref, ...props}: ChatCommonProps & {ref?: Ref<ChatCom
                     handleSend={handleSend}
                     sampleQueries={sampleQueries}
                 />
-                <Conversation
-                    id={id}
-                    includeAgentMessages={!givesFinalAnswer(selectedNetwork)}
-                    shouldWrapOutput={shouldWrapOutput}
-                    turns={turns}
-                />
+                <Box
+                    role="region"
+                    aria-label="Current conversation"
+                >
+                    <Conversation
+                        id={id}
+                        includeAgentMessages={!givesFinalAnswer(selectedNetwork)}
+                        shouldWrapOutput={shouldWrapOutput}
+                        turns={turns}
+                    />
+                </Box>
                 {getThinking()}
                 {getWorkingSpinner()}
                 {getControlButtons()}

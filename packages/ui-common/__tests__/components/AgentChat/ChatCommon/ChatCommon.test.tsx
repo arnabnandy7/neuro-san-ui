@@ -1040,7 +1040,7 @@ describe("ChatCommon", () => {
             expect(mockOnChunkReceived).toHaveBeenCalledWith(JSON.stringify(chatResponse))
         })
 
-        it("Should truncate at MAX_TURNS", async () => {
+        it("Should truncate at MAX_TURNS while retaining user queries", async () => {
             renderChatCommonComponent()
 
             const messages = Array.from({length: MAX_TURNS + 1}, (_, i) =>
@@ -1056,6 +1056,7 @@ describe("ChatCommon", () => {
             await sendQuery(TEST_AGENT_MATH_GUY, "Test query")
 
             await screen.findByText("Show Thinking")
+            within(screen.getByRole("region", {name: "Current conversation"})).getByText("Test query")
             const thinkingSection = document.querySelector(`#${defaultProps.id}-thinking`)
             expect(thinkingSection).toBeInTheDocument()
 
@@ -1070,6 +1071,57 @@ describe("ChatCommon", () => {
                     )
                 ).toBeInTheDocument()
             }
+        })
+
+        it.each(["sample", "typed"])("Should retain a %s query throughout a long response", async (source) => {
+            // Use a long query so the sample chip is truncated.
+            const query =
+                "Explain the airline policy for changing international flights, including fees and refund eligibility."
+            const finalAnswer = "Here is the airline policy."
+            const onStreamingComplete = vi.fn()
+            let streamChunk: SendChatQueryCallback
+            let finishStream: () => void
+
+            vi.mocked(sendChatQuery).mockImplementation(async (...args) => {
+                streamChunk = args[4]
+                await new Promise<void>((resolve) => {
+                    finishStream = resolve
+                })
+                return {}
+            })
+
+            renderChatCommonComponent({sampleQueries: [query], onStreamingComplete})
+            const conversation = within(screen.getByRole("region", {name: "Current conversation"}))
+
+            if (source === "sample") {
+                await user.click(screen.getByRole("button", {name: `Click to send query: "${query}"`}))
+            } else {
+                await sendQuery(TEST_AGENT_MATH_GUY, query)
+            }
+
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+
+            await act(async () => {
+                for (let index = 0; index < 2 * MAX_TURNS; index += 1) {
+                    streamChunk(
+                        JSON.stringify({response: getResponseMessage(ChatMessageType.AGENT, `Progress ${index}`)})
+                    )
+                }
+                streamChunk(
+                    JSON.stringify({response: getResponseMessage(ChatMessageType.AGENT_FRAMEWORK, finalAnswer)})
+                )
+            })
+
+            expect(onStreamingComplete).not.toHaveBeenCalled()
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+
+            await act(async () => {
+                finishStream()
+            })
+
+            expect(onStreamingComplete).toHaveBeenCalledTimes(1)
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+            conversation.getByText(finalAnswer)
         })
     })
 
