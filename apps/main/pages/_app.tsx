@@ -32,6 +32,7 @@ import {FC, ReactElement, JSX as ReactJSX, ReactNode, StrictMode, useEffect, use
 import {Auth} from "../../../packages/ui-common/components/Authentication/Auth"
 import {NeuroAIBreadcrumbs} from "../../../packages/ui-common/components/Common/Breadcrumbs"
 import {Footer} from "../../../packages/ui-common/components/Common/Footer"
+import {GoogleAnalytics} from "../../../packages/ui-common/components/Common/GoogleAnalytics"
 import {LoadingSpinner} from "../../../packages/ui-common/components/Common/LoadingSpinner"
 import {Navbar, NavbarProps} from "../../../packages/ui-common/components/Common/Navbar"
 import {Snackbar} from "../../../packages/ui-common/components/Common/Snackbar"
@@ -116,6 +117,11 @@ export const NeuroSanUI: FC<ExtendedAppProps> = ({Component, pageProps}): ReactJ
     const background = useSettingsStore((state) => state.settings.branding.background)
 
     const [theme, setTheme] = useState<Theme>(() => createTheme())
+
+    // For Google Analytics
+    const [enableGoogleAnalytics, setEnableGoogleAnalytics] = useState<boolean>(false)
+    const [gaMeasurementID, setGaMeasurementID] = useState<string>("")
+
     // Generate the branded theme only on the client to avoid hydration issues.
     useEffect(() => {
         setTheme(createAppTheme(primary, secondary, background))
@@ -160,6 +166,8 @@ export const NeuroSanUI: FC<ExtendedAppProps> = ({Component, pageProps}): ReactJ
             setSupportEmailAddress(data.supportEmailAddress)
             setLogoServiceToken(data.logoServiceToken)
             setEnableAuthentication(data.enableAuthentication)
+            setEnableGoogleAnalytics(data.enableGoogleAnalytics)
+            setGaMeasurementID(data.gaMeasurementID)
 
             if (data.enableAuthentication) {
                 // save Auth0 settings if authentication is enabled.
@@ -358,6 +366,7 @@ export const NeuroSanUI: FC<ExtendedAppProps> = ({Component, pageProps}): ReactJ
                     href="/cognizantfavicon.ico"
                 />
             </Head>
+            {enableGoogleAnalytics && gaMeasurementID && <GoogleAnalytics gaMeasurementID={gaMeasurementID} />}
             <StrictMode>
                 <ThemeProvider
                     theme={theme}

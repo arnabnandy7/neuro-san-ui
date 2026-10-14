@@ -46,34 +46,27 @@ if [[ ! -f "$PACKAGE_JSON" ]]; then
     exit 1
 fi
 
-if command -v jq &> /dev/null; then
-    TMP_FILE="$(mktemp)"
-    if jq --arg v "$VERSION" '.version = $v' "$PACKAGE_JSON" > "$TMP_FILE"; then
-        mv "$TMP_FILE" "$PACKAGE_JSON"
-        echo "Successfully set version to $VERSION in $PACKAGE_JSON (using jq)"
-    else
-        rm -f "$TMP_FILE"
-        echo "Error: Failed to update version using jq" >&2
-        exit 1
-    fi
-else
-    if command -v node &> /dev/null; then
-        node -e "
-            const fs = require('fs');
-            const file = process.argv[1];
-            const version = process.argv[2];
-            try {
-                const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
-                pkg.version = version;
-                fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n');
-                console.log('Successfully set version to ' + version + ' in ' + file + ' (using Node.js)');
-            } catch (err) {
-                console.error('Error: Failed to update version using Node.js:', err.message);
-                process.exit(1);
-            }
-        " "$PACKAGE_JSON" "$VERSION"
-    else
-        echo "Error: Neither jq nor node is available. Cannot update package.json" >&2
-        exit 1
-    fi
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PRETTIER_RC="${REPO_ROOT}/.prettierrc.json"
+if [[ ! -f "$PRETTIER_RC" ]]; then
+    echo "Error: Prettier config not found: $PRETTIER_RC" >&2
+    exit 1
 fi
+
+node -e "
+    const fs = require('fs');
+    const file = process.argv[1];
+    const version = process.argv[2];
+    const prettierRc = process.argv[3];
+    try {
+        // Default of 2 matches Prettier's own default when tabWidth is unset
+        const indent = JSON.parse(fs.readFileSync(prettierRc, 'utf8')).tabWidth ?? 2;
+        const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+        pkg.version = version;
+        fs.writeFileSync(file, JSON.stringify(pkg, null, indent) + '\n');
+        console.log('Successfully set version to ' + version + ' in ' + file);
+    } catch (err) {
+        console.error('Error: Failed to update version:', err.message);
+        process.exit(1);
+    }
+" "$PACKAGE_JSON" "$VERSION" "$PRETTIER_RC"
