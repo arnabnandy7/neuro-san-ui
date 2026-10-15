@@ -33,7 +33,6 @@ import {
 
 //#region Constants
 const PROMPT_PLACEHOLDER = "Describe a change to the network"
-const STREAM_TIMEOUT_MS = 120_000
 
 // How long the dock's status banner stays visible before auto-dismissing. Error banners persist until dismissed.
 // Exported for tests.
@@ -254,11 +253,6 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
         setState("applying")
         const controller = new AbortController()
         abortControllerRef.current = controller
-        let hasTimedOut = false
-        const timeoutId = setTimeout(() => {
-            hasTimedOut = true
-            controller.abort()
-        }, STREAM_TIMEOUT_MS)
         try {
             const newNetworks = await applyNetworkDesignerChanges(
                 controller.signal,
@@ -277,19 +271,10 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
             }
         } catch (e: unknown) {
             const isAbort = e instanceof DOMException && e.name === "AbortError"
-            if (isAbort) {
-                if (hasTimedOut) {
-                    showBanner({
-                        severity: "error",
-                        title: "Failed to apply network change.",
-                        detail: "The request timed out. Please try again.",
-                    })
-                }
-            } else {
+            if (!isAbort) {
                 showBanner({severity: "error", title: "Failed to apply network change.", detail: String(e)})
             }
         } finally {
-            clearTimeout(timeoutId)
             abortControllerRef.current = null
             setState("idle")
         }
