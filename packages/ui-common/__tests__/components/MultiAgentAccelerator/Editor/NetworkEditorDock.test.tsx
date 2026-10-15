@@ -411,6 +411,26 @@ describe("NetworkEditorDock", () => {
         expect(screen.getByText(ELVES_PROMPT)).toBeInTheDocument()
     })
 
+    it("wraps a long echoed prompt within the applying overlay", async () => {
+        mockInFlightDockApply()
+        const longPrompt = "a".repeat(500)
+
+        renderNetworkEditorDock()
+
+        const instructionsField = screen.getByPlaceholderText(PROMPT_PLACEHOLDER)
+        await user.click(instructionsField)
+        await user.paste(longPrompt)
+        await user.click(screen.getByRole("button", {name: APPLY_BUTTON}))
+
+        const echoedPrompt = screen.getByText(longPrompt)
+        expect(echoedPrompt).toHaveStyle({overflowWrap: "anywhere"})
+        expect(echoedPrompt.parentElement).toHaveStyle({minWidth: 0})
+        expect(echoedPrompt.closest(".MuiPaper-root")).toHaveStyle({
+            maxWidth: "480px",
+            width: "calc(100% - 32px)",
+        })
+    })
+
     it("removes the applying overlay once the apply call completes", async () => {
         const release = mockInFlightDockApply()
 
