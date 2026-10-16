@@ -4,8 +4,8 @@ import {userEvent, UserEvent} from "@testing-library/user-event"
 import {makeTempNetwork} from "../../../../../../__tests__/common/NetworksListMock"
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {TEMPORARY_NETWORK_FOLDER} from "../../../../components/MultiAgentAccelerator/const"
+import {BANNER_AUTO_DISMISS_MS} from "../../../../components/MultiAgentAccelerator/Editor/Const"
 import {
-    BANNER_AUTO_DISMISS_MS,
     NetworkEditorDock,
     NetworkEditorDockProps,
 } from "../../../../components/MultiAgentAccelerator/Editor/NetworkEditorDock"
@@ -345,9 +345,9 @@ describe("NetworkEditorDock", () => {
         const applyButton = screen.getByRole("button", {name: APPLY_BUTTON})
         await localUser.click(applyButton)
 
-        // Advance past the former 120-second dock apply timeout.
+        // Advance past the three-minute dock apply timeout previously configured here.
         act(() => {
-            vi.advanceTimersByTime(121_000)
+            vi.advanceTimersByTime(181_000)
         })
 
         expect(capturedSignal?.aborted).toBe(false)

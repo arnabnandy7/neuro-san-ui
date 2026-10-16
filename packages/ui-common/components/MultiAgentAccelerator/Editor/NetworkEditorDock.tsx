@@ -30,15 +30,10 @@ import {
     extractReservations,
     mergeNetworks,
 } from "../TemporaryNetworks"
+import {BANNER_AUTO_DISMISS_MS} from "./Const"
 
 //#region Constants
 const PROMPT_PLACEHOLDER = "Describe a change to the network"
-
-// How long the dock's status banner stays visible before auto-dismissing. Error banners persist until dismissed.
-// Exported for tests.
-
-export const BANNER_AUTO_DISMISS_MS = 5_000
-
 //#endregion Constants
 
 //#region Interfaces and Types
