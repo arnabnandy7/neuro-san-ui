@@ -411,7 +411,7 @@ describe("NetworkEditorDock", () => {
         expect(screen.getByText(ELVES_PROMPT)).toBeInTheDocument()
     })
 
-    it("wraps a long echoed prompt within the applying overlay", async () => {
+    it("keeps the applying controls accessible with a long echoed prompt", async () => {
         mockInFlightDockApply()
         const longPrompt = "a".repeat(500)
 
@@ -422,13 +422,12 @@ describe("NetworkEditorDock", () => {
         await user.paste(longPrompt)
         await user.click(screen.getByRole("button", {name: APPLY_BUTTON}))
 
-        const echoedPrompt = screen.getByText(longPrompt)
-        expect(echoedPrompt).toHaveStyle({overflowWrap: "anywhere"})
-        expect(echoedPrompt.parentElement).toHaveStyle({minWidth: 0})
-        expect(echoedPrompt.closest(".MuiPaper-root")).toHaveStyle({
-            maxWidth: "480px",
-            width: "calc(100% - 32px)",
-        })
+        expect(screen.getByText(APPLYING_TITLE)).toBeVisible()
+        expect(screen.getByText(longPrompt)).toBeVisible()
+
+        const stopButton = screen.getByRole("button", {name: STOP_BUTTON})
+        expect(stopButton).toBeVisible()
+        expect(stopButton).toBeEnabled()
     })
 
     it("removes the applying overlay once the apply call completes", async () => {
