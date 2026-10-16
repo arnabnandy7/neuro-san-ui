@@ -126,6 +126,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                 color={mainAction.color}
                 id={id}
                 ref={setAnchorEl}
+                sx={{"& .MuiButton-root, & .MuiSvgIcon-root": {color: "common.white"}}}
                 variant="contained"
             >
                 <Button
