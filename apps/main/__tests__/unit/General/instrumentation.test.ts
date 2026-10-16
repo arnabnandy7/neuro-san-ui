@@ -19,7 +19,7 @@ Tests for instrumentation.ts Next.js startup file.
  */
 
 import {withStrictMocks} from "../../../../../__tests__/common/strictMocks"
-import {enableAuthenticationEnvVar} from "../../../Const"
+import {ENABLE_AUTHENTICATION_ENV_VAR, ENABLE_GOOGLE_ANALYTICS_ENV_VAR, GA_MEASUREMENT_ID_ENV_VAR} from "../../../Const"
 import {OPTIONAL_ENV_VARS, register, REQUIRED_ENV_VARS, REQUIRED_FOR_AUTH_ENV_VARS} from "../../../instrumentation"
 
 vi.mock("../../../../../packages/ui-common/const")
@@ -46,19 +46,28 @@ describe("instrumentation", () => {
 
     beforeEach(() => {
         // Default to "authentication enabled"
-        process.env[enableAuthenticationEnvVar] = "true"
+        process.env[ENABLE_AUTHENTICATION_ENV_VAR] = "true"
+
         setAllEnvVars()
+
+        // Default to "Google Analytics enabled"
+        process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR] = "true"
+        process.env[GA_MEASUREMENT_ID_ENV_VAR] = "GA_MEASUREMENT_ID-test_value"
     })
 
     const expectConsoleOutput = (
-        authEnabled: boolean,
+        enableAuthentication: boolean,
+        enableGoogleAnalytics: boolean,
+        gaMeasurementID: string,
         openAIKeySet: string,
         logoServiceTokenSet: string,
         neuroSanServerURL: string
     ) => {
-        expect(console.info).toHaveBeenCalledTimes(5)
+        expect(console.info).toHaveBeenCalledTimes(7)
         expect(console.info).toHaveBeenCalledWith("Start-up: Environment variables checked successfully.")
-        expect(console.info).toHaveBeenCalledWith("Authentication enabled:", authEnabled)
+        expect(console.info).toHaveBeenCalledWith("Authentication enabled:", enableAuthentication)
+        expect(console.info).toHaveBeenCalledWith("Google Analytics enabled:", enableGoogleAnalytics)
+        expect(console.info).toHaveBeenCalledWith("Google Analytics Measurement ID:", gaMeasurementID)
         expect(console.info).toHaveBeenCalledWith("OpenAI API key:", openAIKeySet)
         expect(console.info).toHaveBeenCalledWith("Logo service token:", logoServiceTokenSet)
         expect(console.info).toHaveBeenCalledWith("Neuro SAN server URL:", neuroSanServerURL)
@@ -68,8 +77,15 @@ describe("instrumentation", () => {
         vi.spyOn(console, "info").mockImplementation(vi.fn())
         expect(() => register()).not.toThrow()
 
-        // Various start-up messages
-        expectConsoleOutput(true, "set", "set", "NEURO_SAN_SERVER_URL-test_value")
+        // Check start-up messages
+        expectConsoleOutput(
+            true,
+            true,
+            `${GA_MEASUREMENT_ID_ENV_VAR}-test_value`,
+            "set",
+            "set",
+            "NEURO_SAN_SERVER_URL-test_value"
+        )
     })
 
     it("should throw if any required env vars not set", () => {
@@ -86,27 +102,44 @@ describe("instrumentation", () => {
         expect(() => register()).toThrow()
     })
 
+    it("Should throw if Google Analytics is enabled but measurement ID is not set", () => {
+        // Unset an environment variable that is required for Google Analytics
+        delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
+
+        expect(() => register()).toThrow()
+    })
+
     it("Should not throw if authentication is disabled and required variable is not set", () => {
         vi.spyOn(console, "info").mockImplementation(vi.fn())
-        process.env[enableAuthenticationEnvVar] = "false"
+        process.env[ENABLE_AUTHENTICATION_ENV_VAR] = "false"
 
         // Unset an environment variable that is only required for authentication
         delete process.env[REQUIRED_FOR_AUTH_ENV_VARS[0]]
 
         expect(() => register()).not.toThrow()
 
-        // Various start-up messages
-        expectConsoleOutput(false, "set", "set", "NEURO_SAN_SERVER_URL-test_value")
+        // Check start-up messages
+        expectConsoleOutput(
+            false,
+            true,
+            `${GA_MEASUREMENT_ID_ENV_VAR}-test_value`,
+            "set",
+            "set",
+            "NEURO_SAN_SERVER_URL-test_value"
+        )
     })
 
     it("Should not throw if optional variables are not set", () => {
         vi.spyOn(console, "info").mockImplementation(vi.fn())
-        process.env[enableAuthenticationEnvVar] = "false"
+        process.env[ENABLE_AUTHENTICATION_ENV_VAR] = "false"
 
         // Clear all optional environment variables
         OPTIONAL_ENV_VARS.forEach((envVar) => {
             delete process.env[envVar]
         })
+
+        delete process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR]
+        delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
 
         // Spy on console.warn to suppress output during test
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())
@@ -114,10 +147,10 @@ describe("instrumentation", () => {
         expect(() => register()).not.toThrow()
 
         OPTIONAL_ENV_VARS.forEach((envVar) => {
-            expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(envVar))
+            expect(consoleWarnSpy).toHaveBeenCalledExactlyOnceWith(expect.stringContaining(envVar))
         })
 
-        // Various start-up messages
-        expectConsoleOutput(false, "not set", "not set", "NEURO_SAN_SERVER_URL-test_value")
+        // Check start-up messages
+        expectConsoleOutput(false, false, "not set", "not set", "not set", "NEURO_SAN_SERVER_URL-test_value")
     })
 })

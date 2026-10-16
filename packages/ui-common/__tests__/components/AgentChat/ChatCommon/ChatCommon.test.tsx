@@ -407,6 +407,50 @@ describe("ChatCommon", () => {
             await waitFor(() => expect(mockSendFunction).toHaveBeenCalledWith(fullStrToCheck))
         })
 
+        it("Should keep very long prompts scrollable", async () => {
+            const rowHeight = 20
+            const visibleRows = 8
+            const promptRows = 12
+            const longPrompt = Array.from({length: promptRows}, (_, index) => `Line ${index + 1}`).join("\n")
+            const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "scrollHeight")
+            const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "clientHeight")
+
+            Object.defineProperty(HTMLTextAreaElement.prototype, "scrollHeight", {
+                configurable: true,
+                get() {
+                    // eslint-disable-next-line unicorn/no-this-outside-of-class -- property getter needs its element
+                    return this.value.split("\n").length * rowHeight
+                },
+            })
+            Object.defineProperty(HTMLTextAreaElement.prototype, "clientHeight", {
+                configurable: true,
+                get() {
+                    // eslint-disable-next-line unicorn/no-this-outside-of-class -- property getter needs its element
+                    return Number.parseFloat(this.style.height) || rowHeight
+                },
+            })
+
+            try {
+                renderChatCommonComponent()
+
+                const userInput = screen.getByPlaceholderText<HTMLTextAreaElement>(CHAT_WITH_MATH_GUY)
+                await user.click(userInput)
+                await user.paste(longPrompt)
+
+                await waitFor(() => expect(userInput.clientHeight).toBe(visibleRows * rowHeight))
+                expect(userInput).toHaveValue(longPrompt)
+                expect(userInput.scrollHeight).toBe(promptRows * rowHeight)
+                expect(userInput.scrollHeight).toBeGreaterThan(userInput.clientHeight)
+            } finally {
+                if (originalScrollHeight) {
+                    Object.defineProperty(HTMLTextAreaElement.prototype, "scrollHeight", originalScrollHeight)
+                }
+                if (originalClientHeight) {
+                    Object.defineProperty(HTMLTextAreaElement.prototype, "clientHeight", originalClientHeight)
+                }
+            }
+        })
+
         it("Should refuse interaction when no target agent is set", async () => {
             const mockSendFunction = vi.fn()
             renderChatCommonComponent({onSend: mockSendFunction, selectedNetwork: null})
@@ -1040,7 +1084,7 @@ describe("ChatCommon", () => {
             expect(mockOnChunkReceived).toHaveBeenCalledWith(JSON.stringify(chatResponse))
         })
 
-        it("Should truncate at MAX_TURNS", async () => {
+        it("Should truncate at MAX_TURNS while retaining user queries", async () => {
             renderChatCommonComponent()
 
             const messages = Array.from({length: MAX_TURNS + 1}, (_, i) =>
@@ -1056,6 +1100,7 @@ describe("ChatCommon", () => {
             await sendQuery(TEST_AGENT_MATH_GUY, "Test query")
 
             await screen.findByText("Show Thinking")
+            within(screen.getByRole("region", {name: "Current conversation"})).getByText("Test query")
             const thinkingSection = document.querySelector(`#${defaultProps.id}-thinking`)
             expect(thinkingSection).toBeInTheDocument()
 
@@ -1070,6 +1115,57 @@ describe("ChatCommon", () => {
                     )
                 ).toBeInTheDocument()
             }
+        })
+
+        it.each(["sample", "typed"])("Should retain a %s query throughout a long response", async (source) => {
+            // Use a long query so the sample chip is truncated.
+            const query =
+                "Explain the airline policy for changing international flights, including fees and refund eligibility."
+            const finalAnswer = "Here is the airline policy."
+            const onStreamingComplete = vi.fn()
+            let streamChunk: SendChatQueryCallback
+            let finishStream: () => void
+
+            vi.mocked(sendChatQuery).mockImplementation(async (...args) => {
+                streamChunk = args[4]
+                await new Promise<void>((resolve) => {
+                    finishStream = resolve
+                })
+                return {}
+            })
+
+            renderChatCommonComponent({sampleQueries: [query], onStreamingComplete})
+            const conversation = within(screen.getByRole("region", {name: "Current conversation"}))
+
+            if (source === "sample") {
+                await user.click(screen.getByRole("button", {name: `Click to send query: "${query}"`}))
+            } else {
+                await sendQuery(TEST_AGENT_MATH_GUY, query)
+            }
+
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+
+            await act(async () => {
+                for (let index = 0; index < 2 * MAX_TURNS; index += 1) {
+                    streamChunk(
+                        JSON.stringify({response: getResponseMessage(ChatMessageType.AGENT, `Progress ${index}`)})
+                    )
+                }
+                streamChunk(
+                    JSON.stringify({response: getResponseMessage(ChatMessageType.AGENT_FRAMEWORK, finalAnswer)})
+                )
+            })
+
+            expect(onStreamingComplete).not.toHaveBeenCalled()
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+
+            await act(async () => {
+                finishStream()
+            })
+
+            expect(onStreamingComplete).toHaveBeenCalledTimes(1)
+            expect(conversation.getAllByText(query)).toHaveLength(1)
+            conversation.getByText(finalAnswer)
         })
     })
 
