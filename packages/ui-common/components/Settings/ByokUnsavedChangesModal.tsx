@@ -58,11 +58,7 @@ export const ByokUnsavedChangesModal: FC<ByokUnsavedChangesModalProps> = ({
         <ConfirmationModal
             cancelBtnLabel="Discard changes"
             closeable={false}
-            content={
-                content ?? (
-                    <p>You have unsaved edits. Would you like to save your changes, or discard them?</p>
-                )
-            }
+            content={content ?? <p>You have unsaved edits. Would you like to save your changes, or discard them?</p>}
             handleCancel={onDiscard}
             handleOk={onSave}
             id={`${id}-unsaved-changes-modal`}
