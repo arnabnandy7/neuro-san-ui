@@ -46,12 +46,18 @@ export interface ByokDialogProps {
 }
 
 interface LLMProviderInputConfig {
-    checkmark: ReturnType<typeof useCheckmarkFade>
-    idSuffix: string
-    logo: string
-    onTest: (key: string) => Promise<KeyValidationResult>
-    placeholder: string
-    vendor: LLMProvider
+    /** Fade-in checkmark animation state for the key validation indicator. */
+    readonly checkmark: ReturnType<typeof useCheckmarkFade>
+    /** Suffix appended to the base element ID to uniquely identify this provider's input. */
+    readonly idSuffix: string
+    /** Path to the provider's logo image. */
+    readonly logo: string
+    /** Callback that validates the given API key for this provider. */
+    readonly onTest: (key: string) => Promise<KeyValidationResult>
+    /** Placeholder text shown in the API key input field. */
+    readonly placeholder: string
+    /** The LLM provider this configuration applies to. */
+    readonly vendor: LLMProvider
 }
 
 /**

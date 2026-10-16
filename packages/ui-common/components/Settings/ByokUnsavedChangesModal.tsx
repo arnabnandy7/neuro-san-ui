@@ -60,7 +60,7 @@ export const ByokUnsavedChangesModal: FC<ByokUnsavedChangesModalProps> = ({
             closeable={false}
             content={
                 content ?? (
-                    <p>You have unsaved edits. Are you sure you want to discard your changes and close the dialog?</p>
+                    <p>You have unsaved edits. Would you like to save your changes, or discard them?</p>
                 )
             }
             handleCancel={onDiscard}
