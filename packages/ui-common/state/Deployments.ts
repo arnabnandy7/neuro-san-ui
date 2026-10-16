@@ -41,37 +41,14 @@ export type Deployment =
  */
 interface DeploymentsStore {
     readonly deployments: Readonly<Record<string, Deployment>>
-    readonly startPublishing: (networkName: string) => void
-    readonly appendLog: (networkName: string, entry: DeployLogEntry) => void
-    readonly markLive: (networkName: string, url: string) => void
+    readonly setDeployment: (networkName: string, deployment: Deployment) => void
     readonly removeDeployment: (networkName: string) => void
 }
 
 export const useDeploymentsStore = create<DeploymentsStore>()((set) => ({
     deployments: {},
-    startPublishing: (networkName) =>
-        set(({deployments}) => ({
-            deployments: {...deployments, [networkName]: {status: DeploymentStatus.Publishing, log: []}},
-        })),
-    appendLog: (networkName, entry) =>
-        set(({deployments}) => {
-            const deployment = deployments[networkName]
-            if (!deployment) return {}
-
-            return {deployments: {...deployments, [networkName]: {...deployment, log: [...deployment.log, entry]}}}
-        }),
-    markLive: (networkName, url) =>
-        set(({deployments}) => {
-            const deployment = deployments[networkName]
-            if (!deployment) return {}
-
-            return {
-                deployments: {
-                    ...deployments,
-                    [networkName]: {log: deployment.log, status: DeploymentStatus.Live, url, publishedAt: Date.now()},
-                },
-            }
-        }),
+    setDeployment: (networkName, deployment) =>
+        set(({deployments}) => ({deployments: {...deployments, [networkName]: deployment}})),
     removeDeployment: (networkName) =>
         set(({deployments}) => {
             const {[networkName]: _removed, ...rest} = deployments

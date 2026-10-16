@@ -16,8 +16,8 @@ limitations under the License.
 
 import {useCallback} from "react"
 
-import {publishNetwork, unpublishNetwork} from "../../../controller/deploy/Deploy"
-import {Deployment, useDeploymentsStore} from "../../../state/Deployments"
+import {DeployLogEntry, publishNetwork, unpublishNetwork} from "../../../controller/deploy/Deploy"
+import {Deployment, DeploymentStatus, useDeploymentsStore} from "../../../state/Deployments"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 interface NetworkDeployment {
@@ -35,12 +35,16 @@ export const useNetworkDeployment = (networkName: string): NetworkDeployment => 
     const deployment = useDeploymentsStore((state) => state.deployments[networkName])
 
     const publish = useCallback(async (): Promise<string | null> => {
-        const {appendLog, markLive, removeDeployment, startPublishing} = useDeploymentsStore.getState()
-        startPublishing(networkName)
+        const {removeDeployment, setDeployment} = useDeploymentsStore.getState()
+        let log: readonly DeployLogEntry[] = []
+        setDeployment(networkName, {status: DeploymentStatus.Publishing, log})
 
         try {
-            const url = await publishNetwork(networkName, (entry) => appendLog(networkName, entry))
-            markLive(networkName, url)
+            const url = await publishNetwork(networkName, (entry) => {
+                log = [...log, entry]
+                setDeployment(networkName, {status: DeploymentStatus.Publishing, log})
+            })
+            setDeployment(networkName, {status: DeploymentStatus.Live, log, url, publishedAt: Date.now()})
             return url
         } catch (e) {
             removeDeployment(networkName)

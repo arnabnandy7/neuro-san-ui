@@ -119,7 +119,10 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
     const isTemporaryNetwork = Boolean(expirationTime)
     const isExpired = isChild && isTemporaryNetwork && isTemporaryNetworkExpired(expirationTime)
     const networkHocon = item?.temporaryNetworkHocon ?? null
-    const deploymentStatus = useDeploymentsStore((state) => state.deployments[item?.temporaryNetworkName ?? ""]?.status)
+    const temporaryNetworkName = item?.temporaryNetworkName
+    const deploymentStatus = useDeploymentsStore((state) =>
+        temporaryNetworkName ? state.deployments[temporaryNetworkName]?.status : undefined
+    )
 
     const iconNameSuggestion = item.iconSuggestion
 

@@ -10,7 +10,7 @@ import {
     PUBLISHED_TAB_BLOCKED_MESSAGE,
     SHOW_DETAILS_LABEL,
 } from "../../../../components/MultiAgentAccelerator/Deploy/DeployButton"
-import {DeployLogEntry, publishNetwork, unpublishNetwork} from "../../../../controller/deploy/Deploy"
+import {publishNetwork, unpublishNetwork} from "../../../../controller/deploy/Deploy"
 import {useDeploymentsStore} from "../../../../state/Deployments"
 
 //#region Constants
@@ -67,13 +67,19 @@ describe("DeployButton", () => {
         await screen.findByRole("button", {name: "View live"})
     }
 
+    const openDetails = async () => {
+        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
+        await user.click(detailsButton)
+        await screen.findByText("Live")
+    }
+
     beforeEach(() => {
         user = userEvent.setup()
         openedTab = {opener: window} as Window
         openSpy = vi.spyOn(window, "open").mockReturnValue(openedTab)
         useDeploymentsStore.setState({deployments: {}})
 
-        mockPublishNetwork.mockImplementation(async (_networkName, onLog: (entry: DeployLogEntry) => void) => {
+        mockPublishNetwork.mockImplementation(async (_networkName, onLog) => {
             onLog({timestamp: Date.now(), message: BUNDLE_STEP, detail: `${NETWORK_NAME}.hocon`})
             return LIVE_URL
         })
@@ -109,6 +115,13 @@ describe("DeployButton", () => {
         await publishAndWaitUntilLive()
 
         expect(openSpy).toHaveBeenCalledWith(LIVE_URL, "_blank")
+    })
+
+    it("should say the live network opened in a new tab", async () => {
+        renderDeployButton()
+
+        await publishAndWaitUntilLive()
+
         expect(sendNotification).toHaveBeenCalledWith(
             NotificationType.success,
             PUBLISHED_MESSAGE,
@@ -161,20 +174,18 @@ describe("DeployButton", () => {
     it("should show the live URL and when it was published in the details", async () => {
         renderDeployButton()
         await publishAndWaitUntilLive()
-        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
 
-        await user.click(detailsButton)
+        await openDetails()
 
-        await screen.findByText(LIVE_URL)
+        screen.getByText(LIVE_URL)
         screen.getByText("Published just now")
     })
 
     it("should list each deploy step under technical details", async () => {
         renderDeployButton()
         await publishAndWaitUntilLive()
-        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
-        await user.click(detailsButton)
-        const technicalDetailsButton = await screen.findByRole("button", {name: "Technical details"})
+        await openDetails()
+        const technicalDetailsButton = screen.getByRole("button", {name: "Technical details"})
 
         await user.click(technicalDetailsButton)
 
@@ -202,9 +213,8 @@ describe("DeployButton", () => {
         vi.mocked(unpublishNetwork).mockRejectedValue(new Error(DEPLOY_ERROR))
         renderDeployButton()
         await publishAndWaitUntilLive()
-        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
-        await user.click(detailsButton)
-        const unpublishButton = await screen.findByRole("button", {name: "Unpublish"})
+        await openDetails()
+        const unpublishButton = screen.getByRole("button", {name: "Unpublish"})
 
         await user.click(unpublishButton)
 
@@ -215,15 +225,15 @@ describe("DeployButton", () => {
                 expect.stringContaining(DEPLOY_ERROR)
             )
         )
+        // The panel stays open, and it's modal, which hides the button beneath it from the accessibility tree
         screen.getByText("View live")
     })
 
     it("should offer to publish again after unpublishing", async () => {
         renderDeployButton()
         await publishAndWaitUntilLive()
-        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
-        await user.click(detailsButton)
-        const unpublishButton = await screen.findByRole("button", {name: "Unpublish"})
+        await openDetails()
+        const unpublishButton = screen.getByRole("button", {name: "Unpublish"})
 
         await user.click(unpublishButton)
 
@@ -237,12 +247,14 @@ describe("DeployButton", () => {
 
         await user.click(publishButton)
 
-        await screen.findByRole("button", {name: "Publish"})
-        expect(sendNotification).toHaveBeenCalledWith(
-            NotificationType.error,
-            `Failed to publish "${NETWORK_NAME}".`,
-            expect.stringContaining(DEPLOY_ERROR)
+        await waitFor(() =>
+            expect(sendNotification).toHaveBeenCalledWith(
+                NotificationType.error,
+                `Failed to publish "${NETWORK_NAME}".`,
+                expect.stringContaining(DEPLOY_ERROR)
+            )
         )
+        screen.getByRole("button", {name: "Publish"})
         expect(openSpy).not.toHaveBeenCalled()
     })
 })

@@ -25,6 +25,14 @@ import {FC, useState} from "react"
 export const COPY_URL_LABEL = "Copy live URL"
 export const OPEN_URL_LABEL = "Open live URL"
 
+const COPY_TOOLTIPS = {
+    idle: COPY_URL_LABEL,
+    copied: "Copied",
+    failed: "Couldn't copy",
+} as const
+
+type CopyStatus = keyof typeof COPY_TOOLTIPS
+
 interface LiveUrlFieldProps {
     readonly url: string
 }
@@ -33,11 +41,15 @@ interface LiveUrlFieldProps {
  * Read-only display of a published network's URL, with icons to copy it or open it in a new tab.
  */
 export const LiveUrlField: FC<LiveUrlFieldProps> = ({url}) => {
-    const [isCopied, setIsCopied] = useState(false)
+    const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
 
     const handleCopy = async () => {
-        await navigator.clipboard.writeText(url)
-        setIsCopied(true)
+        try {
+            await navigator.clipboard.writeText(url)
+            setCopyStatus("copied")
+        } catch {
+            setCopyStatus("failed")
+        }
     }
 
     return (
@@ -69,8 +81,8 @@ export const LiveUrlField: FC<LiveUrlFieldProps> = ({url}) => {
                 {url}
             </Typography>
             <Tooltip
-                onClose={() => setIsCopied(false)}
-                title={isCopied ? "Copied" : COPY_URL_LABEL}
+                onClose={() => setCopyStatus("idle")}
+                title={COPY_TOOLTIPS[copyStatus]}
             >
                 <IconButton
                     aria-label={COPY_URL_LABEL}

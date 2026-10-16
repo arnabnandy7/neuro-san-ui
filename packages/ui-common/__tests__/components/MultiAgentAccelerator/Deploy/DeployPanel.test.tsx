@@ -48,6 +48,17 @@ describe("DeployPanel", () => {
         expect(await navigator.clipboard.readText()).toBe(LIVE_URL)
     })
 
+    it("should say it couldn't copy when the clipboard refuses", async () => {
+        const user = userEvent.setup()
+        vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("Clipboard blocked"))
+        renderPanel(makeLiveDeployment())
+        const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
+
+        await user.click(copyButton)
+
+        await screen.findByRole("tooltip", {name: "Couldn't copy"})
+    })
+
     it("should go back to offering to copy once the Copied tooltip closes", async () => {
         const user = userEvent.setup()
         renderPanel(makeLiveDeployment())

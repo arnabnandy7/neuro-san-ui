@@ -127,6 +127,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                 id={id}
                 ref={setAnchorEl}
                 size="small"
+                // The theme's contrast text on the green success color is dark, so set white for every state
                 sx={{"& .MuiButton-root, & .MuiSvgIcon-root": {color: "common.white"}}}
                 variant="contained"
             >
@@ -144,7 +145,6 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                         aria-label={SHOW_DETAILS_LABEL}
                         id={`${id}-toggle`}
                         onClick={() => setIsPanelOpen((isOpen) => !isOpen)}
-                        size="small"
                     >
                         <KeyboardArrowDownIcon sx={{fontSize: 18}} />
                     </Button>

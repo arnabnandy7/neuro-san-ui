@@ -53,7 +53,7 @@ const delay = (ms: number): Promise<void> =>
  */
 export const publishNetwork = async (networkName: string, onLog: (entry: DeployLogEntry) => void): Promise<string> => {
     const log = (message: string, detail?: string) => onLog({timestamp: Date.now(), message, detail})
-    const bundleId = `bndl_${crypto.randomUUID().slice(0, 8)}`
+    const bundleId = `bndl_${Math.random().toString(16).slice(2, 10)}`
 
     log(`POST ${STUB_BUNDLE_URL}`, `${networkName}.hocon`)
     await delay(STUB_STEP_DELAY_MS)
