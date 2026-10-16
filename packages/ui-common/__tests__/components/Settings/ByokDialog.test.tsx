@@ -118,9 +118,7 @@ describe("ByokDialog", () => {
         expect(onCloseMock).not.toHaveBeenCalled()
         expect(screen.getByText("Unsaved Changes")).toBeInTheDocument()
         expect(
-            screen.getByText(
-                "You have unsaved edits. Would you like to save your changes, or discard them?"
-            )
+            screen.getByText("You have unsaved edits. Would you like to save your changes, or discard them?")
         ).toBeInTheDocument()
     })
 
