@@ -146,7 +146,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                         onClick={() => setIsPanelOpen((isOpen) => !isOpen)}
                         size="small"
                     >
-                        <KeyboardArrowDownIcon />
+                        <KeyboardArrowDownIcon sx={{fontSize: 18}} />
                     </Button>
                 )}
             </ButtonGroup>
