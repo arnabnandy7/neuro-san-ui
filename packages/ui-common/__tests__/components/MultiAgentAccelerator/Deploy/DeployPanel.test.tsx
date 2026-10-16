@@ -1,4 +1,4 @@
-import {render, screen} from "@testing-library/react"
+import {render, screen, waitForElementToBeRemoved} from "@testing-library/react"
 import {userEvent} from "@testing-library/user-event"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
@@ -7,7 +7,7 @@ import {COPY_URL_LABEL, OPEN_URL_LABEL} from "../../../../components/MultiAgentA
 import {Deployment, DeploymentStatus} from "../../../../state/Deployments"
 
 const LIVE_URL = "http://live.test/cailville_bakery"
-const FIVE_MINUTES_MS = 5 * 60_000
+const MINUTE_MS = 60_000
 
 const renderPanel = (deployment: Deployment) =>
     render(
@@ -28,10 +28,14 @@ const makeLiveDeployment = (publishedAt = Date.now()): Deployment => ({
 describe("DeployPanel", () => {
     withStrictMocks()
 
-    it("should say how long ago the network was published", () => {
-        renderPanel(makeLiveDeployment(Date.now() - FIVE_MINUTES_MS))
+    it.each([
+        {ageMs: 5 * MINUTE_MS, expected: "Published 5 minutes ago"},
+        {ageMs: 3 * 60 * MINUTE_MS, expected: "Published 3 hours ago"},
+        {ageMs: 2 * 24 * 60 * MINUTE_MS, expected: "Published 2 days ago"},
+    ])("should say $expected", ({ageMs, expected}) => {
+        renderPanel(makeLiveDeployment(Date.now() - ageMs))
 
-        screen.getByText("Published 5 minutes ago")
+        screen.getByText(expected)
     })
 
     it("should copy the live URL to the clipboard", async () => {
@@ -42,6 +46,20 @@ describe("DeployPanel", () => {
         await user.click(copyButton)
 
         expect(await navigator.clipboard.readText()).toBe(LIVE_URL)
+    })
+
+    it("should go back to offering to copy once the Copied tooltip closes", async () => {
+        const user = userEvent.setup()
+        renderPanel(makeLiveDeployment())
+        const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
+        await user.click(copyButton)
+        await screen.findByRole("tooltip", {name: "Copied"})
+
+        await user.unhover(copyButton)
+        await waitForElementToBeRemoved(() => screen.queryByRole("tooltip"))
+        await user.hover(copyButton)
+
+        await screen.findByRole("tooltip", {name: COPY_URL_LABEL})
     })
 
     it("should link to the live URL in a new tab", () => {

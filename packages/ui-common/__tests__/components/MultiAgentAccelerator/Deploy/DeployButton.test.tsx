@@ -1,4 +1,4 @@
-import {render, screen} from "@testing-library/react"
+import {render, screen, waitFor} from "@testing-library/react"
 import {userEvent, UserEvent} from "@testing-library/user-event"
 import {MockInstance} from "vitest"
 
@@ -179,6 +179,43 @@ describe("DeployButton", () => {
         await user.click(technicalDetailsButton)
 
         expect(screen.getByText(new RegExp(BUNDLE_STEP, "u"))).toHaveTextContent(`${NETWORK_NAME}.hocon`)
+    })
+
+    it("should reopen the progress panel when Publishing... is clicked", async () => {
+        const releasePublish = mockInFlightPublish()
+        renderDeployButton()
+        const publishButton = screen.getByRole("button", {name: "Publish"})
+        await user.click(publishButton)
+        await user.keyboard("{Escape}")
+        await waitFor(() => expect(screen.queryByText("Putting it online...")).not.toBeInTheDocument())
+        const publishingButton = screen.getByRole("button", {name: "Publishing..."})
+
+        await user.click(publishingButton)
+
+        await screen.findByText("Putting it online...")
+
+        releasePublish()
+        await screen.findByRole("button", {name: "View live"})
+    })
+
+    it("should report the error and stay live when unpublishing fails", async () => {
+        vi.mocked(unpublishNetwork).mockRejectedValue(new Error(DEPLOY_ERROR))
+        renderDeployButton()
+        await publishAndWaitUntilLive()
+        const detailsButton = screen.getByRole("button", {name: SHOW_DETAILS_LABEL})
+        await user.click(detailsButton)
+        const unpublishButton = await screen.findByRole("button", {name: "Unpublish"})
+
+        await user.click(unpublishButton)
+
+        await waitFor(() =>
+            expect(sendNotification).toHaveBeenCalledWith(
+                NotificationType.error,
+                `Failed to unpublish "${NETWORK_NAME}".`,
+                expect.stringContaining(DEPLOY_ERROR)
+            )
+        )
+        screen.getByText("View live")
     })
 
     it("should offer to publish again after unpublishing", async () => {
