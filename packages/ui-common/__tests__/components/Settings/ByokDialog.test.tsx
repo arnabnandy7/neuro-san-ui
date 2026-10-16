@@ -119,7 +119,7 @@ describe("ByokDialog", () => {
         expect(screen.getByText("Unsaved Changes")).toBeInTheDocument()
         expect(
             screen.getByText(
-                "You have unsaved edits. Are you sure you want to discard your changes and close the dialog?"
+                "You have unsaved edits. Would you like to save your changes, or discard them?"
             )
         ).toBeInTheDocument()
     })
