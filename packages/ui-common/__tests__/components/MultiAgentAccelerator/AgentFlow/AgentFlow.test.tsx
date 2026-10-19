@@ -1709,11 +1709,12 @@ describe("AgentFlow", () => {
             await screen.findByRole("button", {name: "Publish"})
         })
 
-        it("Should not offer to publish a permanent network", async () => {
+        it("Should not offer to publish a permanent network", () => {
             const networkName = "Regular Net"
             renderAgentFlowComponent({networkDisplayName: networkName})
 
-            await screen.findByText(networkName)
+            // First proves the bar, where the button would appear, is on screen
+            screen.getByText(networkName)
 
             expect(screen.queryByRole("button", {name: "Publish"})).not.toBeInTheDocument()
         })
