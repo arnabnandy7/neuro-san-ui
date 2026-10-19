@@ -20,8 +20,10 @@ const renderPanel = (deployment: Deployment) =>
     )
 
 const makeLiveDeployment = (publishedAt = Date.now()): Deployment => ({
+    deploymentId: "dep-123",
     log: [],
     publishedAt,
+    serverUrl: "https://nsdeploy.test",
     status: DeploymentStatus.Live,
     url: LIVE_URL,
 })

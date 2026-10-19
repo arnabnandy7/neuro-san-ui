@@ -1697,16 +1697,39 @@ describe("AgentFlow", () => {
     })
 
     describe("Publishing", () => {
-        it("Should offer to publish a temporary network", async () => {
-            useTempNetworksStore.getState().setTempNetworks([makeTempNetwork(OLD_NETWORK_ID, [], "published_network")])
+        const PUBLISHABLE_NETWORK_NAME = "Published Network"
 
+        const renderPublishableNetwork = () => {
+            useTempNetworksStore
+                .getState()
+                .setTempNetworks([
+                    {...makeTempNetwork(OLD_NETWORK_ID, [], "published_network"), networkHocon: "{ tools: [] }"},
+                ])
             renderAgentFlowComponent({
                 isTemporaryNetwork: true,
-                networkDisplayName: "Published Network",
+                networkDisplayName: PUBLISHABLE_NETWORK_NAME,
                 networkId: OLD_NETWORK_ID,
             })
+        }
+
+        beforeEach(() => {
+            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: "https://nsdeploy.test", orgName: "org"}})
+        })
+
+        it("Should offer to publish a temporary network", async () => {
+            renderPublishableNetwork()
 
             await screen.findByRole("button", {name: "Publish"})
+        })
+
+        it("Should not offer to publish until an NS Deploy server is set in Settings", () => {
+            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: null}})
+            renderPublishableNetwork()
+
+            // First proves the bar, where the button would appear, is on screen
+            screen.getByText(PUBLISHABLE_NETWORK_NAME)
+
+            expect(screen.queryByRole("button", {name: "Publish"})).not.toBeInTheDocument()
         })
 
         it("Should not offer to publish a permanent network", () => {

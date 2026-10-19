@@ -24,7 +24,7 @@ import {FC} from "react"
 import {DeployLog} from "./DeployLog"
 import {StatusDot} from "./DeployStatusBadge"
 import {LiveUrlField} from "./LiveUrlField"
-import {Deployment, DeploymentStatus} from "../../../state/Deployments"
+import {Deployment, DeploymentStatus, LiveDeployment} from "../../../state/Deployments"
 
 const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat(undefined, {numeric: "auto"})
 
@@ -47,7 +47,7 @@ interface DeployPanelProps {
     readonly deployment: Deployment
     readonly id: string
     readonly isUnpublishing: boolean
-    readonly onUnpublish: () => void
+    readonly onUnpublish: (liveDeployment: LiveDeployment) => void
 }
 
 /**
@@ -95,7 +95,7 @@ export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, isUnpublishin
         {deployment.status === DeploymentStatus.Live && (
             <Button
                 disabled={isUnpublishing}
-                onClick={onUnpublish}
+                onClick={() => onUnpublish(deployment)}
                 size="small"
                 sx={{alignSelf: "flex-start", color: "error.light", minWidth: 0, p: 0, textTransform: "none"}}
             >

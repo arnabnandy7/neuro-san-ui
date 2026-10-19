@@ -6,19 +6,26 @@ import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {NotificationType, sendNotification} from "../../../../components/Common/notification"
 import {
     DeployButton,
+    ORG_NAME_REQUIRED_MESSAGE,
     PUBLISHED_MESSAGE,
     PUBLISHED_TAB_BLOCKED_MESSAGE,
     SHOW_DETAILS_LABEL,
 } from "../../../../components/MultiAgentAccelerator/Deploy/DeployButton"
-import {publishNetwork, unpublishNetwork} from "../../../../controller/deploy/Deploy"
+import {PublishedNetwork, publishNetwork, unpublishNetwork} from "../../../../controller/deploy/Deploy"
 import {useDeploymentsStore} from "../../../../state/Deployments"
+import {useSettingsStore} from "../../../../state/Settings"
 
 //#region Constants
 
-const BUNDLE_STEP = "POST http://bundle.test/bundle"
 const DEPLOY_ERROR = "deploy service unavailable"
+const DEPLOYMENT_ID = "dep-123"
+const HOCON = "{ tools: [] }"
 const LIVE_URL = "http://live.test/cailville_bakery"
 const NETWORK_NAME = "cailville_bakery"
+const ORG_NAME = "cailville"
+const SERVER_URL = "https://nsdeploy.test"
+const UPLOAD_STEP = `POST ${SERVER_URL}/deployments`
+const PUBLISHED: PublishedNetwork = {deploymentId: DEPLOYMENT_ID, url: LIVE_URL}
 
 //#endregion Constants
 
@@ -38,14 +45,14 @@ describe("DeployButton", () => {
     let openSpy: MockInstance<typeof window.open>
 
     /**
-     * Keeps the publish in flight until the returned `release()` is called, which then succeeds with LIVE_URL.
+     * Keeps the publish in flight until the returned `release()` is called, which then succeeds.
      */
     const mockInFlightPublish = () => {
         let release!: () => void
         mockPublishNetwork.mockImplementation(
             () =>
-                new Promise<string>((resolve) => {
-                    release = () => resolve(LIVE_URL)
+                new Promise<PublishedNetwork>((resolve) => {
+                    release = () => resolve(PUBLISHED)
                 })
         )
 
@@ -55,6 +62,7 @@ describe("DeployButton", () => {
     const renderDeployButton = () =>
         render(
             <DeployButton
+                hocon={HOCON}
                 id="deploy-button"
                 networkName={NETWORK_NAME}
             />
@@ -76,10 +84,12 @@ describe("DeployButton", () => {
         user = userEvent.setup()
         openSpy = vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         useDeploymentsStore.setState({deployments: {}})
+        useSettingsStore.getState().resetSettings()
+        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
 
-        mockPublishNetwork.mockImplementation(async (_networkName, onLog) => {
-            onLog({timestamp: Date.now(), message: BUNDLE_STEP, detail: `${NETWORK_NAME}.hocon`})
-            return LIVE_URL
+        mockPublishNetwork.mockImplementation(async ({onLog}) => {
+            onLog({timestamp: Date.now(), message: UPLOAD_STEP, detail: `${NETWORK_NAME}.hocon`})
+            return PUBLISHED
         })
         vi.mocked(unpublishNetwork).mockResolvedValue()
     })
@@ -89,6 +99,45 @@ describe("DeployButton", () => {
 
         screen.getByRole("button", {name: "Publish"})
         expect(screen.queryByRole("button", {name: SHOW_DETAILS_LABEL})).not.toBeInTheDocument()
+    })
+
+    it("should publish the network's HOCON to the server and org from Settings", async () => {
+        renderDeployButton()
+
+        await publishAndWaitUntilLive()
+
+        expect(mockPublishNetwork).toHaveBeenCalledWith(
+            expect.objectContaining({serverUrl: SERVER_URL, orgName: ORG_NAME, networkName: NETWORK_NAME, hocon: HOCON})
+        )
+    })
+
+    it("should not allow publishing until an org name is set in Settings", async () => {
+        useSettingsStore.getState().updateSettings({nsDeploy: {orgName: null}})
+        renderDeployButton()
+        const publishButton = screen.getByRole("button", {name: "Publish"})
+
+        // A disabled button gets no pointer events, so the pointer lands on its wrapper like a real one would
+        await user.hover(publishButton.parentElement)
+
+        expect(publishButton).toBeDisabled()
+        await screen.findByRole("tooltip", {name: ORG_NAME_REQUIRED_MESSAGE})
+    })
+
+    it("should explain instead of publishing when no NS Deploy server is set", async () => {
+        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: null}})
+        renderDeployButton()
+        const publishButton = screen.getByRole("button", {name: "Publish"})
+
+        await user.click(publishButton)
+
+        await waitFor(() =>
+            expect(sendNotification).toHaveBeenCalledWith(
+                NotificationType.error,
+                `Failed to publish "${NETWORK_NAME}".`,
+                expect.stringContaining("Set an NS Deploy server")
+            )
+        )
+        expect(mockPublishNetwork).not.toHaveBeenCalled()
     })
 
     it("should show the progress panel while publishing and close it once published", async () => {
@@ -165,7 +214,7 @@ describe("DeployButton", () => {
 
         await user.click(technicalDetailsButton)
 
-        expect(screen.getByText(new RegExp(BUNDLE_STEP, "u"))).toHaveTextContent(`${NETWORK_NAME}.hocon`)
+        expect(screen.getByText(new RegExp(UPLOAD_STEP, "u"))).toHaveTextContent(`${NETWORK_NAME}.hocon`)
     })
 
     it("should reopen the progress panel when Publishing... is clicked", async () => {
@@ -224,6 +273,18 @@ describe("DeployButton", () => {
         )
         // The panel stays open, and it's modal, which hides the button beneath it from the accessibility tree
         screen.getByText("View live")
+    })
+
+    it("should unpublish from the server it was published to, even if Settings changed since", async () => {
+        renderDeployButton()
+        await publishAndWaitUntilLive()
+        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: "https://other-nsdeploy.test"}})
+        await openDetails()
+        const unpublishButton = screen.getByRole("button", {name: "Unpublish"})
+
+        await user.click(unpublishButton)
+
+        expect(unpublishNetwork).toHaveBeenCalledWith(SERVER_URL, DEPLOYMENT_ID)
     })
 
     it("should offer to publish again after unpublishing", async () => {

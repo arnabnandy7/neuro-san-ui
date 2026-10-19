@@ -21,18 +21,23 @@ import Button from "@mui/material/Button"
 import ButtonGroup from "@mui/material/ButtonGroup"
 import CircularProgress from "@mui/material/CircularProgress"
 import Popover from "@mui/material/Popover"
+import Tooltip from "@mui/material/Tooltip"
 import {FC, ReactNode, useState} from "react"
 
 import {DeployPanel} from "./DeployPanel"
 import {useNetworkDeployment} from "./useNetworkDeployment"
-import {DeploymentStatus} from "../../../state/Deployments"
+import {DeploymentStatus, LiveDeployment} from "../../../state/Deployments"
+import {useSettingsStore} from "../../../state/Settings"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
 export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 export const SHOW_DETAILS_LABEL = "Show publish details"
+export const ORG_NAME_REQUIRED_MESSAGE = "Add an org name in Settings > Advanced to publish"
 
 interface DeployButtonProps {
+    /** The network's HOCON, the same file Download gives */
+    readonly hocon: string
     readonly id: string
     readonly networkName: string
 }
@@ -62,8 +67,9 @@ const openInNewTab = (url: string): boolean => {
  * Split button for publishing a network: "Publish", then "Publishing..." while it deploys, then "View live". The
  * dropdown opens a panel with the deploy's progress, live URL and technical details.
  */
-export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
-    const {deployment, publish, unpublish} = useNetworkDeployment(networkName)
+export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) => {
+    const {deployment, publish, unpublish} = useNetworkDeployment(networkName, hocon)
+    const hasOrgName = useSettingsStore((state) => Boolean(state.settings.nsDeploy.orgName))
 
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
     const [isPanelOpen, setIsPanelOpen] = useState(false)
@@ -83,9 +89,9 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
         }
     }
 
-    const handleUnpublish = async () => {
+    const handleUnpublish = async (liveDeployment: LiveDeployment) => {
         setIsUnpublishing(true)
-        await unpublish()
+        await unpublish(liveDeployment)
         setIsUnpublishing(false)
         setIsPanelOpen(false)
     }
@@ -122,6 +128,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
     }
 
     const mainAction = getMainAction()
+    const isPublishBlocked = !deployment && !hasOrgName
 
     return (
         <>
@@ -130,18 +137,28 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                 id={id}
                 ref={setAnchorEl}
                 size="small"
-                // The theme's contrast text on the green success color is dark, so set white for every state
-                sx={{"& .MuiButton-root, & .MuiSvgIcon-root": {color: "common.white"}}}
+                // The theme's contrast text on the green success color is dark, so enabled buttons get white text, and
+                // icons follow the text color instead of the app's global icon color
+                sx={{
+                    "& .MuiButton-root:not(.Mui-disabled)": {color: "common.white"},
+                    "& .MuiSvgIcon-root": {color: "inherit"},
+                }}
                 variant="contained"
             >
-                <Button
-                    id={`${id}-main`}
-                    onClick={mainAction.handleClick}
-                    startIcon={mainAction.icon}
-                    sx={{whiteSpace: "nowrap"}}
-                >
-                    {mainAction.label}
-                </Button>
+                <Tooltip title={isPublishBlocked ? ORG_NAME_REQUIRED_MESSAGE : ""}>
+                    {/* A disabled button doesn't fire the hover events the tooltip needs, so it gets a wrapper */}
+                    <span>
+                        <Button
+                            disabled={isPublishBlocked}
+                            id={`${id}-main`}
+                            onClick={mainAction.handleClick}
+                            startIcon={mainAction.icon}
+                            sx={{whiteSpace: "nowrap"}}
+                        >
+                            {mainAction.label}
+                        </Button>
+                    </span>
+                </Tooltip>
                 {deployment && (
                     <Button
                         aria-expanded={isPanelOpen}

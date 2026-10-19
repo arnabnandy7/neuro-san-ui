@@ -23,18 +23,23 @@ export enum DeploymentStatus {
     Live = "Live",
 }
 
-export type Deployment =
-    | {
-          readonly status: DeploymentStatus.Publishing
-          readonly log: readonly DeployLogEntry[]
-      }
-    | {
-          readonly status: DeploymentStatus.Live
-          readonly log: readonly DeployLogEntry[]
-          readonly url: string
-          /** Milliseconds since epoch */
-          readonly publishedAt: number
-      }
+interface PublishingDeployment {
+    readonly status: DeploymentStatus.Publishing
+    readonly log: readonly DeployLogEntry[]
+}
+
+export interface LiveDeployment {
+    readonly status: DeploymentStatus.Live
+    readonly log: readonly DeployLogEntry[]
+    /** The NS Deploy server it was deployed to, so it's unpublished from the same one */
+    readonly serverUrl: string
+    readonly deploymentId: string
+    readonly url: string
+    /** Milliseconds since epoch */
+    readonly publishedAt: number
+}
+
+export type Deployment = PublishingDeployment | LiveDeployment
 
 /**
  * Zustand state store for published networks, keyed by agent network name.

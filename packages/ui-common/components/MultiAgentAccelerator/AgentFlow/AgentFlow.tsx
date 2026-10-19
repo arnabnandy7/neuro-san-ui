@@ -252,6 +252,9 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     // Read temporary networks to find agent_network_definition for the currently selected network.
     const tempNetworks = useTempNetworksStore((state) => state.tempNetworks)
 
+    // Publishing is only offered once an NS Deploy server is set in Settings
+    const nsDeployServerUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
+
     const currentTempNetwork = useMemo(
         () => (networkId ? tempNetworks.find((n) => n.agentInfo.agent_name === networkId) : undefined),
         [networkId, tempNetworks]
@@ -827,14 +830,19 @@ export const AgentFlow: FC<AgentFlowProps> = ({
                         Edit
                     </Button>
                 )}
-                {currentTempNetwork?.agentNetworkName && !isAgentNetworkDesignerMode && !isEditingNetwork && (
-                    <Box sx={{pointerEvents: "auto"}}>
-                        <DeployButton
-                            id={`${id}-deploy-button`}
-                            networkName={currentTempNetwork.agentNetworkName}
-                        />
-                    </Box>
-                )}
+                {nsDeployServerUrl &&
+                    currentTempNetwork?.agentNetworkName &&
+                    currentTempNetwork.networkHocon &&
+                    !isAgentNetworkDesignerMode &&
+                    !isEditingNetwork && (
+                        <Box sx={{pointerEvents: "auto"}}>
+                            <DeployButton
+                                hocon={currentTempNetwork.networkHocon}
+                                id={`${id}-deploy-button`}
+                                networkName={currentTempNetwork.agentNetworkName}
+                            />
+                        </Box>
+                    )}
             </Box>
         )
     }

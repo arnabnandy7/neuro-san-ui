@@ -9,27 +9,27 @@ import IconButton from "@mui/material/IconButton"
 import InputAdornment from "@mui/material/InputAdornment"
 import MenuItem from "@mui/material/MenuItem"
 import Select, {SelectChangeEvent} from "@mui/material/Select"
-import {createTheme, styled, ThemeProvider, useTheme} from "@mui/material/styles"
+import {createTheme, ThemeProvider, useTheme} from "@mui/material/styles"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
 import {
-    ComponentPropsWithoutRef,
     FC,
     ChangeEvent as ReactChangeEvent,
     MouseEvent as ReactMouseEvent,
-    ReactNode,
     useCallback,
     useEffect,
     useMemo,
     useState,
 } from "react"
 
+import {AdvancedSettings} from "./AdvancedSettings"
 import {ApiKeyErrorBanner, ApiKeyFailure} from "./ApiKeyErrorBanner"
 import {ApiKeyInput} from "./ApiKeyInput"
 import {useCheckmarkFade} from "./FadingCheckmark"
+import {Section, SettingsSectionTitle, SettingsSubsection, SubSection, SubSectionBody} from "./SettingsLayout"
 import {SettingsRow} from "./SettingsRow"
 import {getBrandingSuggestions, testConnection, TestConnectionResult} from "../../controller/agent/Agent"
 import {
@@ -49,58 +49,12 @@ import {
     useSettingsStore,
 } from "../../state/Settings"
 import {PALETTES} from "../../Theme/Palettes"
+import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 import {ConfirmationModal} from "../Common/ConfirmationModal"
 import {MUIDialog} from "../Common/MUIDialog"
 import {NotificationType, sendNotification} from "../Common/notification"
 import {StatusLight} from "../Common/StatusLight"
 import {CustomerLogo} from "../Logo/CustomerLogo"
-
-//#region: Styled Components
-
-const SettingsSectionTitleBase: FC<ComponentPropsWithoutRef<typeof Typography>> = (props) => (
-    <Typography
-        variant="h6"
-        {...props}
-    />
-)
-
-const SettingsSectionTitle = styled(SettingsSectionTitleBase)(({theme}) => ({
-    marginBottom: theme.spacing(0.5),
-}))
-
-const Section = styled(Box)(({theme}) => ({
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-}))
-
-const SubsectionTitle = styled(Typography)(({theme}) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    color: theme.palette.text.secondary,
-    fontWeight: 600,
-    paddingBottom: theme.spacing(0.5),
-    marginBottom: theme.spacing(1.5),
-    width: "100%",
-}))
-
-const SubSection = styled(Box)(({theme}) => ({
-    alignItems: "start",
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(4),
-}))
-
-const SubSectionBody = styled(Box)(({theme}) => ({
-    alignContent: "center",
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2.5),
-    width: "100%",
-}))
-
-//#endregion: Styled Components
 
 //#region: Types and Interfaces
 
@@ -120,44 +74,8 @@ interface LLMProviderInputConfig {
     placeholder: string
 }
 
-interface SettingsSubsectionProps {
-    readonly title: string
-    readonly children: ReactNode
-}
-
-type Protocol = "http" | "https"
-
 //#endregion: Types and Interfaces
 
-const SettingsSubsection: FC<SettingsSubsectionProps> = ({title, children}) => (
-    <SubSection>
-        <SubsectionTitle variant="subtitle1">{title}</SubsectionTitle>
-        <SubSectionBody>{children}</SubSectionBody>
-    </SubSection>
-)
-const URL_PROTOCOL_REGEX = /^https?:\/\//iu
-const HTTP_PROTOCOL_REGEX = /^http:\/\//iu
-
-const stripProtocol = (value: string) => (value ?? "").replace(URL_PROTOCOL_REGEX, "")
-
-/**
- * Normalize a Neuro SAN URL input by stripping the protocol and determining the protocol to use.
- * @param value The input URL value to normalize.
- * @param fallbackProtocol The protocol to use if the input value does not specify one.
- * @return An object containing the normalized host and protocol.
- */
-const normalizeNeuroSanUrlInput = (value: string, fallbackProtocol: Protocol) => {
-    const trimmedValue = value.trim()
-    const hasProtocol = URL_PROTOCOL_REGEX.exec(trimmedValue)
-
-    return {
-        host: stripProtocol(trimmedValue),
-        protocol: hasProtocol ? (HTTP_PROTOCOL_REGEX.test(trimmedValue) ? "http" : "https") : fallbackProtocol,
-    } satisfies {
-        host: string
-        protocol: Protocol
-    }
-}
 export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoServiceToken, onClose}) => {
     // Settings store actions
     const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -388,7 +306,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     }
 
     const handleTestConnection = async () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
 
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
@@ -403,7 +321,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     }
 
     const handleSaveNeuroSanUrl = () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
 
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
@@ -424,13 +342,13 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     }
 
     const handleNeuroSanUrlBlur = () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
     }
 
     const handleResetNeuroSanUrl = () => {
-        const normalized = normalizeNeuroSanUrlInput(defaultNeuroSanUrl, "https")
+        const normalized = normalizeUrlInput(defaultNeuroSanUrl, "https")
         setNeuroSanUrlInput(normalized.host)
         setNeuroSanProtocol(normalized.protocol)
     }
@@ -1111,6 +1029,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
                 {getApiKeysSection()}
                 {getBehaviorSection()}
                 {getAppearanceSection()}
+                <AdvancedSettings id={`${id}-advanced`} />
                 {getResetSettingsSection()}
             </MUIDialog>
         </ThemeProvider>

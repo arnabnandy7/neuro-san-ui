@@ -449,8 +449,10 @@ describe("SideBar", () => {
         useDeploymentsStore.setState({
             deployments: {
                 [TEMPORARY_NETWORK_NAME]: {
+                    deploymentId: "dep-123",
                     log: [],
                     publishedAt: Date.now(),
+                    serverUrl: "https://nsdeploy.test",
                     status: DeploymentStatus.Live,
                     url: "http://live.test",
                 },
