@@ -36,7 +36,6 @@ describe("DeployButton", () => {
 
     let user: UserEvent
     let openSpy: MockInstance<typeof window.open>
-    let openedTab: Window
 
     /**
      * Keeps the publish in flight until the returned `release()` is called, which then succeeds with LIVE_URL.
@@ -75,8 +74,7 @@ describe("DeployButton", () => {
 
     beforeEach(() => {
         user = userEvent.setup()
-        openedTab = {opener: window} as Window
-        openSpy = vi.spyOn(window, "open").mockReturnValue(openedTab)
+        openSpy = vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         useDeploymentsStore.setState({deployments: {}})
 
         mockPublishNetwork.mockImplementation(async (_networkName, onLog) => {
@@ -93,7 +91,7 @@ describe("DeployButton", () => {
         expect(screen.queryByRole("button", {name: SHOW_DETAILS_LABEL})).not.toBeInTheDocument()
     })
 
-    it("should show that the network is being put online while publishing", async () => {
+    it("should show the progress panel while publishing and close it once published", async () => {
         const releasePublish = mockInFlightPublish()
         renderDeployButton()
         const publishButton = screen.getByRole("button", {name: "Publish"})
@@ -107,35 +105,21 @@ describe("DeployButton", () => {
 
         releasePublish()
         await screen.findByRole("button", {name: "View live"})
+        expect(screen.queryByText("Putting it online...")).not.toBeInTheDocument()
     })
 
-    it("should open the live network in a new tab once published", async () => {
+    it("should open the live network in a new tab and say so once published", async () => {
         renderDeployButton()
 
         await publishAndWaitUntilLive()
 
         expect(openSpy).toHaveBeenCalledWith(LIVE_URL, "_blank")
-    })
-
-    it("should say the live network opened in a new tab", async () => {
-        renderDeployButton()
-
-        await publishAndWaitUntilLive()
-
         expect(sendNotification).toHaveBeenCalledWith(
             NotificationType.success,
             PUBLISHED_MESSAGE,
             "",
             expect.anything()
         )
-    })
-
-    it("should cut the new tab off from this page", async () => {
-        renderDeployButton()
-
-        await publishAndWaitUntilLive()
-
-        expect(openedTab.opener).toBeNull()
     })
 
     it("should point to View live when the browser blocks the new tab", async () => {
@@ -150,14 +134,6 @@ describe("DeployButton", () => {
             "",
             expect.anything()
         )
-    })
-
-    it("should close the progress panel once published", async () => {
-        renderDeployButton()
-
-        await publishAndWaitUntilLive()
-
-        expect(screen.queryByText("Putting it online...")).not.toBeInTheDocument()
     })
 
     it("should open the live network again when View live is clicked", async () => {

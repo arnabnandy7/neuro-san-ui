@@ -39,7 +39,7 @@ describe("DeployPanel", () => {
         screen.getByText(expected)
     })
 
-    it("should copy the live URL to the clipboard", async () => {
+    it("should copy the live URL, say Copied, then go back to offering to copy", async () => {
         const user = userEvent.setup()
         renderPanel(makeLiveDeployment())
         const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
@@ -47,6 +47,13 @@ describe("DeployPanel", () => {
         await user.click(copyButton)
 
         expect(await navigator.clipboard.readText()).toBe(LIVE_URL)
+        await screen.findByRole("tooltip", {name: "Copied"})
+
+        await user.unhover(copyButton)
+        await waitForElementToBeRemoved(() => screen.queryByRole("tooltip"))
+        await user.hover(copyButton)
+
+        await screen.findByRole("tooltip", {name: COPY_URL_LABEL})
     })
 
     it("should say it couldn't copy when the clipboard refuses", async () => {
@@ -58,20 +65,6 @@ describe("DeployPanel", () => {
         await user.click(copyButton)
 
         await screen.findByRole("tooltip", {name: "Couldn't copy"})
-    })
-
-    it("should go back to offering to copy once the Copied tooltip closes", async () => {
-        const user = userEvent.setup()
-        renderPanel(makeLiveDeployment())
-        const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
-        await user.click(copyButton)
-        await screen.findByRole("tooltip", {name: "Copied"})
-
-        await user.unhover(copyButton)
-        await waitForElementToBeRemoved(() => screen.queryByRole("tooltip"))
-        await user.hover(copyButton)
-
-        await screen.findByRole("tooltip", {name: COPY_URL_LABEL})
     })
 
     it("should link to the live URL in a new tab", () => {
