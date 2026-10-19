@@ -29,6 +29,7 @@ import {
     filterNodeEvents,
 } from "../../../../components/MultiAgentAccelerator/AgentFlow/AgentFlow"
 import {ThoughtBubbleEdgeShape} from "../../../../components/MultiAgentAccelerator/ThoughtBubbles/ThoughtBubbleEdge"
+import {findReadyDeployment} from "../../../../controller/nsDeploy/NsDeploy"
 import {ChatMessageType, ConnectivityInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useSettingsStore} from "../../../../state/Settings"
 import {useTempNetworksStore} from "../../../../state/TemporaryNetworks"
@@ -99,6 +100,9 @@ type ThoughtBubbleOverlayProps = {
 //#region Mocks
 
 vi.mock("../../../../controller/agent/Agent")
+
+// The Publish button asks the NS Deploy server whether the network is already live
+vi.mock("../../../../controller/nsDeploy/NsDeploy")
 
 vi.mock("notistack", async (importOriginal) => {
     const actual = await importOriginal<typeof import("notistack")>()
@@ -1714,6 +1718,7 @@ describe("AgentFlow", () => {
 
         beforeEach(() => {
             useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: "https://nsdeploy.test", orgName: "org"}})
+            vi.mocked(findReadyDeployment).mockResolvedValue(null)
         })
 
         it("Should offer to publish a temporary network", async () => {

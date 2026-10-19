@@ -9,10 +9,10 @@ import {
     SAVE_PUBLISHING_LABEL,
     TEST_NS_DEPLOY_SERVER_LABEL,
 } from "../../../components/Settings/AdvancedSettings"
-import {testDeployServer} from "../../../controller/deploy/Deploy"
+import {checkHealth} from "../../../controller/nsDeploy/NsDeploy"
 import {useSettingsStore} from "../../../state/Settings"
 
-vi.mock("../../../controller/deploy/Deploy")
+vi.mock("../../../controller/nsDeploy/NsDeploy")
 
 const EXPAND_LABEL = "Expand advanced settings"
 const ORG_NAME = "cailville"
@@ -103,14 +103,14 @@ describe("AdvancedSettings", () => {
         {desc: "Connected when the server is up", success: true, expected: "Connected"},
         {desc: "Couldn't connect when it isn't", success: false, expected: "Couldn't connect"},
     ])("should say $desc", async ({success, expected}) => {
-        vi.mocked(testDeployServer).mockResolvedValue({success})
+        vi.mocked(checkHealth).mockResolvedValue({success})
         await renderExpanded()
         await typeInto(NS_DEPLOY_HOST_LABEL, SERVER_HOST)
         const testButton = screen.getByRole("button", {name: TEST_NS_DEPLOY_SERVER_LABEL})
 
         await user.click(testButton)
 
-        expect(testDeployServer).toHaveBeenCalledWith(`https://${SERVER_HOST}`)
+        expect(checkHealth).toHaveBeenCalledWith(`https://${SERVER_HOST}`)
         screen.getByText(expected)
     })
 

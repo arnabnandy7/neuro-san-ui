@@ -86,9 +86,9 @@ interface Settings {
         neuroSanUrl: string | null
     }
     readonly nsDeploy: {
-        /** Server that published networks are deployed to. Publishing is off while this is null. */
+        /** NS Deploy server that networks are published to. Publishing is off while this is null. */
         readonly serverUrl: string | null
-        /** Sent as org_name with every deploy. Required to publish. */
+        /** Sent as org_name with every publish. Required to publish. */
         readonly orgName: string | null
     }
 }

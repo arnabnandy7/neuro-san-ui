@@ -21,10 +21,10 @@ import LinearProgress from "@mui/material/LinearProgress"
 import Typography from "@mui/material/Typography"
 import {FC} from "react"
 
-import {DeployLog} from "./DeployLog"
-import {StatusDot} from "./DeployStatusBadge"
 import {LiveUrlField} from "./LiveUrlField"
-import {Deployment, DeploymentStatus, LiveDeployment} from "../../../state/Deployments"
+import {PublishLog} from "./PublishLog"
+import {StatusDot} from "./PublishStatusBadge"
+import {LiveNetwork, PublishState, PublishStatus} from "../../../state/Publishing"
 
 const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat(undefined, {numeric: "auto"})
 
@@ -43,33 +43,33 @@ const formatPublishedAgo = (publishedAt: number): string => {
     return RELATIVE_TIME_FORMAT.format(-Math.floor(hours / 24), "day")
 }
 
-interface DeployPanelProps {
-    readonly deployment: Deployment
+interface PublishPanelProps {
+    readonly publishState: PublishState
     readonly id: string
     readonly isUnpublishing: boolean
-    readonly onUnpublish: (liveDeployment: LiveDeployment) => void
+    readonly onUnpublish: (liveNetwork: LiveNetwork) => void
 }
 
 /**
- * Details of a network's deployment: progress while publishing, or the live URL once published.
+ * Details of publishing a network: progress while publishing, or the live URL once published.
  */
-export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, isUnpublishing, onUnpublish}) => (
+export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpublish, publishState}) => (
     <Box
         id={id}
         sx={{display: "flex", flexDirection: "column", gap: 1.5, p: 2, width: "22rem"}}
     >
-        {deployment.status === DeploymentStatus.Live ? (
+        {publishState.status === PublishStatus.Live ? (
             <>
                 <Box sx={{alignItems: "center", display: "flex", gap: 1}}>
-                    <StatusDot deploymentStatus={deployment.status} />
+                    <StatusDot publishStatus={publishState.status} />
                     <Typography sx={{fontWeight: 600}}>Live</Typography>
                 </Box>
-                <LiveUrlField url={deployment.url} />
+                <LiveUrlField url={publishState.url} />
                 <Typography
                     color="text.secondary"
                     variant="body2"
                 >
-                    Published {formatPublishedAgo(deployment.publishedAt)}
+                    Published {formatPublishedAgo(publishState.publishedAt)}
                 </Typography>
             </>
         ) : (
@@ -88,14 +88,14 @@ export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, isUnpublishin
             </>
         )}
         <Divider />
-        <DeployLog
+        <PublishLog
             id={`${id}-log`}
-            log={deployment.log}
+            log={publishState.log}
         />
-        {deployment.status === DeploymentStatus.Live && (
+        {publishState.status === PublishStatus.Live && (
             <Button
                 disabled={isUnpublishing}
-                onClick={() => onUnpublish(deployment)}
+                onClick={() => onUnpublish(publishState)}
                 size="small"
                 sx={{alignSelf: "flex-start", color: "error.light", minWidth: 0, p: 0, textTransform: "none"}}
             >

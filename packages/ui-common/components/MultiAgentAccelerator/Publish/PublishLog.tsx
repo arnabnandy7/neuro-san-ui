@@ -17,20 +17,20 @@ limitations under the License.
 import Box from "@mui/material/Box"
 import {FC} from "react"
 
-import {DeployLogEntry} from "../../../controller/deploy/Deploy"
+import {RequestLogEntry} from "../../../controller/nsDeploy/NsDeploy"
 import {AccordionLite} from "../../Common/AccordionLite"
 
-interface DeployLogProps {
+interface PublishLogProps {
     readonly id: string
-    readonly log: readonly DeployLogEntry[]
+    readonly log: readonly RequestLogEntry[]
 }
 
 const formatTime = (timestamp: number): string => new Date(timestamp).toLocaleTimeString([], {hour12: false})
 
 /**
- * Collapsible "Technical details" section listing each step of a deploy.
+ * Collapsible "Technical details" section listing each request made to the NS Deploy server.
  */
-export const DeployLog: FC<DeployLogProps> = ({id, log}) => (
+export const PublishLog: FC<PublishLogProps> = ({id, log}) => (
     <AccordionLite
         id={id}
         title="Technical details"

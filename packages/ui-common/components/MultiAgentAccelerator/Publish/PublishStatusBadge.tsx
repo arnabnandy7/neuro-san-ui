@@ -17,23 +17,23 @@ limitations under the License.
 import Box from "@mui/material/Box"
 import {FC} from "react"
 
-import {DeploymentStatus} from "../../../state/Deployments"
+import {PublishStatus} from "../../../state/Publishing"
 
-const STATUS_COLORS: Record<DeploymentStatus, string> = {
-    [DeploymentStatus.Live]: "success.main",
-    [DeploymentStatus.Publishing]: "var(--bs-secondary)",
+const STATUS_COLORS: Record<PublishStatus, string> = {
+    [PublishStatus.Live]: "success.main",
+    [PublishStatus.Publishing]: "var(--bs-secondary)",
 }
 
-interface DeployStatusProps {
-    readonly deploymentStatus: DeploymentStatus
+interface PublishStatusProps {
+    readonly publishStatus: PublishStatus
 }
 
-export const StatusDot: FC<DeployStatusProps> = ({deploymentStatus}) => (
+export const StatusDot: FC<PublishStatusProps> = ({publishStatus}) => (
     <Box
         aria-hidden={true}
         component="span"
         sx={{
-            backgroundColor: STATUS_COLORS[deploymentStatus],
+            backgroundColor: STATUS_COLORS[publishStatus],
             borderRadius: "50%",
             display: "inline-block",
             flexShrink: 0,
@@ -46,19 +46,19 @@ export const StatusDot: FC<DeployStatusProps> = ({deploymentStatus}) => (
 /**
  * Compact dot-and-label showing whether a network is publishing or live.
  */
-export const DeployStatusBadge: FC<DeployStatusProps> = ({deploymentStatus}) => (
+export const PublishStatusBadge: FC<PublishStatusProps> = ({publishStatus}) => (
     <Box
         component="span"
         sx={{
             alignItems: "center",
-            color: STATUS_COLORS[deploymentStatus],
+            color: STATUS_COLORS[publishStatus],
             display: "inline-flex",
             fontSize: "0.75rem",
             fontWeight: 600,
             gap: 0.5,
         }}
     >
-        <StatusDot deploymentStatus={deploymentStatus} />
-        {deploymentStatus}
+        <StatusDot publishStatus={publishStatus} />
+        {publishStatus}
     </Box>
 )

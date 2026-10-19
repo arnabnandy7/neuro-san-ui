@@ -29,7 +29,7 @@ import Typography from "@mui/material/Typography"
 import {FC, ReactNode, useState} from "react"
 
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
-import {testDeployServer} from "../../controller/deploy/Deploy"
+import {checkHealth} from "../../controller/nsDeploy/NsDeploy"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 
@@ -108,7 +108,7 @@ interface AdvancedSettingsProps {
 
 /**
  * Collapsible "Advanced" section of the Settings dialog: the NS Deploy server that networks are published to, and the
- * org name sent with each deploy.
+ * org name sent with each publish.
  */
 export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
     const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -135,7 +135,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
     }
 
     const handleTest = async () => {
-        const result = await testDeployServer(serverUrl)
+        const result = await checkHealth(serverUrl)
         setIsServerReachable(result.success)
     }
 
@@ -257,7 +257,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                             sx={{letterSpacing: "normal"}}
                             variant="caption"
                         >
-                            Sent as org_name with every deploy. Published networks are grouped under it.
+                            Sent as org_name with every publish. Published networks are grouped under it.
                         </Typography>
                     }
                     label={ORG_NAME_LABEL}

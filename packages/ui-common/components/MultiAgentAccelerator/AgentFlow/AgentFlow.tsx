@@ -69,9 +69,9 @@ import {ConnectivityInfo} from "../../../generated/neuro-san/NeuroSanClient"
 import {GraphColoringOption, Layout, usePalette, useSettingsStore} from "../../../state/Settings"
 import {useTempNetworksStore} from "../../../state/TemporaryNetworks"
 import {getZIndex} from "../../../utils/zIndexLayers"
-import {DeployButton} from "../Deploy/DeployButton"
 import {AgentNodeEditor} from "../Editor/AgentNodeEditor"
 import {NetworkEditorDock} from "../Editor/NetworkEditorDock"
+import {PublishButton} from "../Publish/PublishButton"
 import {isEditableAgent} from "../TemporaryNetworks"
 import {ThoughtBubbleEdge, ThoughtBubbleEdgeShape} from "../ThoughtBubbles/ThoughtBubbleEdge"
 import {ThoughtBubbleOverlay} from "../ThoughtBubbles/ThoughtBubbleOverlay"
@@ -836,9 +836,10 @@ export const AgentFlow: FC<AgentFlowProps> = ({
                     !isAgentNetworkDesignerMode &&
                     !isEditingNetwork && (
                         <Box sx={{pointerEvents: "auto"}}>
-                            <DeployButton
+                            <PublishButton
+                                displayName={networkDisplayName}
                                 hocon={currentTempNetwork.networkHocon}
-                                id={`${id}-deploy-button`}
+                                id={`${id}-publish-button`}
                                 networkName={currentTempNetwork.agentNetworkName}
                             />
                         </Box>

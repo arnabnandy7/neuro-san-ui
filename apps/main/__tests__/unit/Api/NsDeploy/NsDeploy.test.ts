@@ -21,8 +21,8 @@ import handler from "../../../../pages/api/nsdeploy/[...path]"
 
 const SERVER_URL = "https://nsdeploy.test"
 
-// Each test uses one of the NS Deploy endpoints the client calls (see controller/deploy/Deploy.ts). The comment on each
-// test names it.
+// Each test uses one of the NS Deploy endpoints the client calls (see controller/nsDeploy/NsDeploy.ts). The
+// comment on each test names it.
 describe("NS Deploy proxy", () => {
     withStrictMocks()
 

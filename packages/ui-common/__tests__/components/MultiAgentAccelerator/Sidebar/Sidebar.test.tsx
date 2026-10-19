@@ -50,8 +50,8 @@ import {
 import {testConnection, TestConnectionResult} from "../../../../controller/agent/Agent"
 import {NetworkIconSuggestions} from "../../../../controller/Types/NetworkIconSuggestions"
 import {AgentInfo} from "../../../../generated/neuro-san/NeuroSanClient"
-import {DeploymentStatus, useDeploymentsStore} from "../../../../state/Deployments"
 import {useEnvironmentStore} from "../../../../state/Environment"
+import {PublishStatus, usePublishStore} from "../../../../state/Publishing"
 import {useSettingsStore} from "../../../../state/Settings"
 import {cleanUpAgentName} from "../../../../utils/AgentName"
 import {downloadFile} from "../../../../utils/File"
@@ -446,14 +446,14 @@ describe("SideBar", () => {
     })
 
     it("Should show Live next to a published temporary network", async () => {
-        useDeploymentsStore.setState({
-            deployments: {
+        usePublishStore.setState({
+            networks: {
                 [TEMPORARY_NETWORK_NAME]: {
                     deploymentId: "dep-123",
                     log: [],
                     publishedAt: Date.now(),
                     serverUrl: "https://nsdeploy.test",
-                    status: DeploymentStatus.Live,
+                    status: PublishStatus.Live,
                     url: "http://live.test",
                 },
             },

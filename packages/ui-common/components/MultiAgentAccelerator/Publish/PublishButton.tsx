@@ -22,20 +22,24 @@ import ButtonGroup from "@mui/material/ButtonGroup"
 import CircularProgress from "@mui/material/CircularProgress"
 import Popover from "@mui/material/Popover"
 import Tooltip from "@mui/material/Tooltip"
-import {FC, ReactNode, useState} from "react"
+import {FC, ReactNode, useEffect, useState} from "react"
 
-import {DeployPanel} from "./DeployPanel"
-import {useNetworkDeployment} from "./useNetworkDeployment"
-import {DeploymentStatus, LiveDeployment} from "../../../state/Deployments"
+import {checkIfPublished, publish, PublishTarget, unpublish} from "./Publishing"
+import {PublishPanel} from "./PublishPanel"
+import {LiveNetwork, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {useSettingsStore} from "../../../state/Settings"
+import {ConfirmationModal} from "../../Common/ConfirmationModal"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
 export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 export const SHOW_DETAILS_LABEL = "Show publish details"
-export const ORG_NAME_REQUIRED_MESSAGE = "Add an org name in Settings > Advanced to publish"
+export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
+    "Add an NS Deploy server and org name in Settings > Advanced to publish"
 
-interface DeployButtonProps {
+interface PublishButtonProps {
+    /** The network's name as people read it, for the confirmation */
+    readonly displayName: string
     /** The network's HOCON, the same file Download gives */
     readonly hocon: string
     readonly id: string
@@ -64,20 +68,33 @@ const openInNewTab = (url: string): boolean => {
 }
 
 /**
- * Split button for publishing a network: "Publish", then "Publishing..." while it deploys, then "View live". The
- * dropdown opens a panel with the deploy's progress, live URL and technical details.
+ * Split button for publishing a network: "Publish", then "Publishing..." while it goes live, then "View live". The
+ * dropdown opens a panel with the progress, live URL and technical details.
  */
-export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) => {
-    const {deployment, publish, unpublish} = useNetworkDeployment(networkName, hocon)
-    const hasOrgName = useSettingsStore((state) => Boolean(state.settings.nsDeploy.orgName))
+export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkName}) => {
+    const publishState = usePublishStore((state) => state.networks[networkName])
+    const serverUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
+    const orgName = useSettingsStore((state) => state.settings.nsDeploy.orgName)
+    const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
 
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
+    const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false)
     const [isPanelOpen, setIsPanelOpen] = useState(false)
     const [isUnpublishing, setIsUnpublishing] = useState(false)
+    // The live network waiting on the user to confirm unpublishing it
+    const [networkToUnpublish, setNetworkToUnpublish] = useState<LiveNetwork | null>(null)
 
-    const handlePublish = async () => {
+    // We only remember published networks in memory, so ask the server whether this one is live, for example after a
+    // reload
+    useEffect(() => {
+        if (serverUrl && orgName) {
+            void checkIfPublished(networkName, {serverUrl, orgName})
+        }
+    }, [networkName, orgName, serverUrl])
+
+    const handlePublish = async (publishTarget: PublishTarget) => {
         setIsPanelOpen(true)
-        const url = await publish()
+        const url = await publish(networkName, hocon, publishTarget)
         setIsPanelOpen(false)
 
         if (url) {
@@ -89,16 +106,16 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
         }
     }
 
-    const handleUnpublish = async (liveDeployment: LiveDeployment) => {
+    const handleUnpublish = async (liveNetwork: LiveNetwork) => {
         setIsUnpublishing(true)
-        await unpublish(liveDeployment)
+        await unpublish(networkName, liveNetwork)
         setIsUnpublishing(false)
         setIsPanelOpen(false)
     }
 
     const getMainAction = (): MainAction => {
-        switch (deployment?.status) {
-            case DeploymentStatus.Publishing:
+        switch (publishState?.status) {
+            case PublishStatus.Publishing:
                 return {
                     color: "primary",
                     icon: (
@@ -110,25 +127,25 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
                     label: "Publishing...",
                     handleClick: () => setIsPanelOpen(true),
                 }
-            case DeploymentStatus.Live:
+            case PublishStatus.Live:
                 return {
                     color: "success",
                     icon: <OpenInNewIcon />,
                     label: "View live",
-                    handleClick: () => openInNewTab(deployment.url),
+                    handleClick: () => openInNewTab(publishState.url),
                 }
             default:
                 return {
                     color: "primary",
                     icon: <PublicIcon />,
                     label: "Publish",
-                    handleClick: handlePublish,
+                    handleClick: () => setIsPublishConfirmOpen(true),
                 }
         }
     }
 
     const mainAction = getMainAction()
-    const isPublishBlocked = !deployment && !hasOrgName
+    const isPublishBlocked = !publishState && !target
 
     return (
         <>
@@ -145,7 +162,7 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
                 }}
                 variant="contained"
             >
-                <Tooltip title={isPublishBlocked ? ORG_NAME_REQUIRED_MESSAGE : ""}>
+                <Tooltip title={isPublishBlocked ? PUBLISH_SETTINGS_REQUIRED_MESSAGE : ""}>
                     {/* A disabled button doesn't fire the hover events the tooltip needs, so it gets a wrapper */}
                     <span>
                         <Button
@@ -159,7 +176,7 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
                         </Button>
                     </span>
                 </Tooltip>
-                {deployment && (
+                {publishState && (
                     <Button
                         aria-expanded={isPanelOpen}
                         aria-label={SHOW_DETAILS_LABEL}
@@ -170,7 +187,7 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
                     </Button>
                 )}
             </ButtonGroup>
-            {deployment && (
+            {publishState && (
                 <Popover
                     anchorEl={anchorEl}
                     anchorOrigin={{vertical: "bottom", horizontal: "right"}}
@@ -179,13 +196,45 @@ export const DeployButton: FC<DeployButtonProps> = ({hocon, id, networkName}) =>
                     slotProps={{paper: {sx: {mt: 1}}}}
                     transformOrigin={{vertical: "top", horizontal: "right"}}
                 >
-                    <DeployPanel
-                        deployment={deployment}
+                    <PublishPanel
+                        publishState={publishState}
                         id={`${id}-panel`}
                         isUnpublishing={isUnpublishing}
-                        onUnpublish={handleUnpublish}
+                        onUnpublish={setNetworkToUnpublish}
                     />
                 </Popover>
+            )}
+            {isPublishConfirmOpen && target && (
+                <ConfirmationModal
+                    content={
+                        `"${displayName}" will be published to ${target.serverUrl} ` +
+                        `under the org "${target.orgName}". Anyone with the link will be able to use it.`
+                    }
+                    handleCancel={() => setIsPublishConfirmOpen(false)}
+                    handleOk={() => {
+                        setIsPublishConfirmOpen(false)
+                        void handlePublish(target)
+                    }}
+                    id={`${id}-confirm`}
+                    okBtnLabel="Publish"
+                    title="Publish this network?"
+                />
+            )}
+            {networkToUnpublish && (
+                <ConfirmationModal
+                    content={
+                        `"${displayName}" will be taken offline at ${networkToUnpublish.url}. ` +
+                        "Anyone using the link will lose access."
+                    }
+                    handleCancel={() => setNetworkToUnpublish(null)}
+                    handleOk={() => {
+                        setNetworkToUnpublish(null)
+                        void handleUnpublish(networkToUnpublish)
+                    }}
+                    id={`${id}-unpublish-confirm`}
+                    okBtnLabel="Unpublish"
+                    title="Unpublish this network?"
+                />
             )}
         </>
     )
