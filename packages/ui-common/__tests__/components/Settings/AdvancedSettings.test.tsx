@@ -6,8 +6,7 @@ import {
     AdvancedSettings,
     NS_DEPLOY_HOST_LABEL,
     ORG_NAME_LABEL,
-    SAVE_NS_DEPLOY_SERVER_LABEL,
-    SAVE_ORG_NAME_LABEL,
+    SAVE_PUBLISHING_LABEL,
     TEST_NS_DEPLOY_SERVER_LABEL,
 } from "../../../components/Settings/AdvancedSettings"
 import {testDeployServer} from "../../../controller/deploy/Deploy"
@@ -15,13 +14,8 @@ import {useSettingsStore} from "../../../state/Settings"
 
 vi.mock("../../../controller/deploy/Deploy")
 
-// Fading checkmark behavior is covered by FadingCheckmark.test.tsx.
-vi.mock("../../../components/Settings/FadingCheckmark", () => ({
-    FadingCheckmark: (): null => null,
-    useCheckmarkFade: () => ({show: false, trigger: vi.fn()}),
-}))
-
 const EXPAND_LABEL = "Expand advanced settings"
+const ORG_NAME = "cailville"
 const SERVER_HOST = "nsdeploy.test"
 
 describe("AdvancedSettings", () => {
@@ -44,6 +38,11 @@ describe("AdvancedSettings", () => {
         await user.paste(text)
     }
 
+    const save = async () => {
+        const saveButton = screen.getByRole("button", {name: SAVE_PUBLISHING_LABEL})
+        await user.click(saveButton)
+    }
+
     beforeEach(() => {
         user = userEvent.setup()
         useSettingsStore.getState().resetSettings()
@@ -56,14 +55,14 @@ describe("AdvancedSettings", () => {
         expect(screen.queryByRole("textbox", {name: NS_DEPLOY_HOST_LABEL})).not.toBeInTheDocument()
     })
 
-    it("should save the NS Deploy server as an https URL", async () => {
+    it("should save the server as an https URL along with the org name", async () => {
         await renderExpanded()
         await typeInto(NS_DEPLOY_HOST_LABEL, SERVER_HOST)
-        const saveButton = screen.getByRole("button", {name: SAVE_NS_DEPLOY_SERVER_LABEL})
+        await typeInto(ORG_NAME_LABEL, `  ${ORG_NAME}  `)
 
-        await user.click(saveButton)
+        await save()
 
-        expect(getNsDeploySettings().serverUrl).toBe(`https://${SERVER_HOST}`)
+        expect(getNsDeploySettings()).toEqual({serverUrl: `https://${SERVER_HOST}`, orgName: ORG_NAME})
     })
 
     it("should save an http server when http is chosen", async () => {
@@ -72,9 +71,8 @@ describe("AdvancedSettings", () => {
         await user.click(protocolSelect)
         await user.click(screen.getByRole("option", {name: "http://"}))
         await typeInto(NS_DEPLOY_HOST_LABEL, SERVER_HOST)
-        const saveButton = screen.getByRole("button", {name: SAVE_NS_DEPLOY_SERVER_LABEL})
 
-        await user.click(saveButton)
+        await save()
 
         expect(getNsDeploySettings().serverUrl).toBe(`http://${SERVER_HOST}`)
     })
@@ -89,21 +87,22 @@ describe("AdvancedSettings", () => {
     })
 
     it("should turn publishing off when the server is cleared and saved", async () => {
-        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: `https://${SERVER_HOST}`}})
+        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: `https://${SERVER_HOST}`, orgName: ORG_NAME}})
         await renderExpanded()
+        screen.getByText("On")
         const clearButton = screen.getByRole("button", {name: "Clear NS Deploy server"})
         await user.click(clearButton)
-        const saveButton = screen.getByRole("button", {name: SAVE_NS_DEPLOY_SERVER_LABEL})
 
-        await user.click(saveButton)
+        await save()
 
         expect(getNsDeploySettings().serverUrl).toBeNull()
+        screen.getByText("Off")
     })
 
     it.each([
-        {desc: "green when the server is up", success: true, expected: "green"},
-        {desc: "red when it isn't", success: false, expected: "red"},
-    ])("should show the test result as $desc", async ({success, expected}) => {
+        {desc: "Connected when the server is up", success: true, expected: "Connected"},
+        {desc: "Couldn't connect when it isn't", success: false, expected: "Couldn't connect"},
+    ])("should say $desc", async ({success, expected}) => {
         vi.mocked(testDeployServer).mockResolvedValue({success})
         await renderExpanded()
         await typeInto(NS_DEPLOY_HOST_LABEL, SERVER_HOST)
@@ -112,25 +111,14 @@ describe("AdvancedSettings", () => {
         await user.click(testButton)
 
         expect(testDeployServer).toHaveBeenCalledWith(`https://${SERVER_HOST}`)
-        expect(screen.getByTestId("advanced-ns-deploy-status-light")).toHaveAttribute("data-status", expected)
+        screen.getByText(expected)
     })
 
-    it("should save the org name without surrounding spaces", async () => {
-        await renderExpanded()
-        await typeInto(ORG_NAME_LABEL, "  cailville  ")
-        const saveButton = screen.getByRole("button", {name: SAVE_ORG_NAME_LABEL})
+    it("should not offer to save when nothing has changed", async () => {
+        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: `https://${SERVER_HOST}`, orgName: ORG_NAME}})
 
-        await user.click(saveButton)
-
-        expect(getNsDeploySettings().orgName).toBe("cailville")
-    })
-
-    it("should not offer to save an org name that hasn't changed", async () => {
-        useSettingsStore.getState().updateSettings({nsDeploy: {orgName: "cailville"}})
         await renderExpanded()
 
-        const saveButton = screen.getByRole("button", {name: SAVE_ORG_NAME_LABEL})
-
-        expect(saveButton).toBeDisabled()
+        expect(screen.getByRole("button", {name: SAVE_PUBLISHING_LABEL})).toBeDisabled()
     })
 })

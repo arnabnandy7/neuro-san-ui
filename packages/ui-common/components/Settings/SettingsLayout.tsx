@@ -60,9 +60,12 @@ export const SubSectionBody = styled(Box)(({theme}) => ({
 }))
 
 const SubsectionTitle = styled(Typography)(({theme}) => ({
+    alignItems: "baseline",
     borderBottom: `1px solid ${theme.palette.divider}`,
     color: theme.palette.text.secondary,
+    display: "flex",
     fontWeight: 600,
+    gap: theme.spacing(1.5),
     paddingBottom: theme.spacing(0.5),
     marginBottom: theme.spacing(1.5),
     width: "100%",
@@ -72,12 +75,34 @@ const SubsectionTitle = styled(Typography)(({theme}) => ({
 
 interface SettingsSubsectionProps {
     readonly title: string
+    /** Shown after the title in lighter text */
+    readonly caption?: string
+    /** Shown at the right end of the title row */
+    readonly status?: ReactNode
     readonly children: ReactNode
 }
 
-export const SettingsSubsection: FC<SettingsSubsectionProps> = ({title, children}) => (
+export const SettingsSubsection: FC<SettingsSubsectionProps> = ({caption, children, status: statusNode, title}) => (
     <SubSection>
-        <SubsectionTitle variant="subtitle1">{title}</SubsectionTitle>
+        <SubsectionTitle variant="subtitle1">
+            {title}
+            {caption && (
+                <Typography
+                    component="span"
+                    sx={{color: "text.secondary", fontSize: "0.85em", fontWeight: 400}}
+                >
+                    {caption}
+                </Typography>
+            )}
+            {statusNode && (
+                <Box
+                    component="span"
+                    sx={{ml: "auto"}}
+                >
+                    {statusNode}
+                </Box>
+            )}
+        </SubsectionTitle>
         <SubSectionBody>{children}</SubSectionBody>
     </SubSection>
 )

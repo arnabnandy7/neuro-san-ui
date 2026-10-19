@@ -17,6 +17,16 @@ limitations under the License.
 /**
  * Client for an NS Deploy server, which deploys a network's HOCON as a live website.
  * Requests go through our `/api/nsdeploy` route because the server doesn't allow requests from browsers.
+ *
+ * NS Deploy endpoints we call:
+ * - `GET /health`: whether the server is up. No token needed. Used by testDeployServer.
+ * - `POST /deployments`: uploads the HOCON as `file` along with `org_name`. Used by publishNetwork.
+ * - `GET /deployments/{id}/wait?timeout=60`: waits for the build. 504 means it's still building, so ask again. Used by
+ *   publishNetwork.
+ * - `DELETE /deployments/{id}`: takes the network offline. Used by unpublishNetwork.
+ *
+ * The server also has `GET /deployments` (list) and `GET /deployments/{id}/logs?tail=150` (build log), which we don't
+ * use yet.
  */
 
 import {testConnection, TestConnectionResult} from "../agent/Agent"

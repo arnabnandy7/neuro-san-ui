@@ -13,7 +13,6 @@ interface SettingsRowProps {
     readonly id?: string
     readonly label: ReactNode
     readonly labelWidth?: string | number
-    readonly required?: boolean
     readonly sx?: SxProps<Theme>
     readonly tooltip: ReactNode
 }
@@ -28,7 +27,6 @@ export const SettingsRow: FC<SettingsRowProps> = ({
     id,
     label,
     labelWidth = "8rem",
-    required = false,
     sx,
     tooltip,
 }) => {
@@ -59,7 +57,7 @@ export const SettingsRow: FC<SettingsRowProps> = ({
                         flexShrink: 0,
                     }}
                 >
-                    <FormLabel required={required}>{label}</FormLabel>
+                    <FormLabel>{label}</FormLabel>
                 </Box>
             ) : null}
 

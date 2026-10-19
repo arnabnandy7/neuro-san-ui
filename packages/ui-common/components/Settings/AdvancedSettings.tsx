@@ -19,27 +19,88 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Collapse from "@mui/material/Collapse"
+import FormLabel from "@mui/material/FormLabel"
 import IconButton from "@mui/material/IconButton"
 import InputAdornment from "@mui/material/InputAdornment"
 import MenuItem from "@mui/material/MenuItem"
 import Select from "@mui/material/Select"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
-import {FC, useState} from "react"
+import {FC, ReactNode, useState} from "react"
 
-import {useCheckmarkFade} from "./FadingCheckmark"
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
-import {SettingsRow} from "./SettingsRow"
 import {testDeployServer} from "../../controller/deploy/Deploy"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
-import {StatusLight} from "../Common/StatusLight"
 
 export const NS_DEPLOY_HOST_LABEL = "NS Deploy server host"
 export const ORG_NAME_LABEL = "Org name"
-export const SAVE_NS_DEPLOY_SERVER_LABEL = "Save NS Deploy server"
-export const SAVE_ORG_NAME_LABEL = "Save org name"
+export const SAVE_PUBLISHING_LABEL = "Save publishing settings"
 export const TEST_NS_DEPLOY_SERVER_LABEL = "Test NS Deploy server"
+
+interface StatusTextProps {
+    readonly color: string
+    readonly children: ReactNode
+}
+
+/**
+ * A colored dot followed by a short status, like "● Connected".
+ */
+const StatusText: FC<StatusTextProps> = ({color, children}) => (
+    <Box
+        component="span"
+        sx={{alignItems: "center", color, display: "inline-flex", fontSize: "0.7rem", fontWeight: 400, gap: 0.75}}
+    >
+        <Box
+            aria-hidden={true}
+            component="span"
+            sx={{backgroundColor: color, borderRadius: "50%", height: "0.5rem", width: "0.5rem"}}
+        />
+        {children}
+    </Box>
+)
+
+interface FieldRowProps {
+    readonly label: string
+    readonly required?: boolean
+    readonly field: ReactNode
+    /** Shown to the right of the field */
+    readonly action?: ReactNode
+    /** Shown under the field */
+    readonly helper?: ReactNode
+}
+
+/**
+ * One row of the form: label, field, then an optional action. Rows go inside a FieldGrid, which owns the columns, so
+ * fields line up and have the same width whether or not their row has an action.
+ */
+const FieldRow: FC<FieldRowProps> = ({label, required = false, field, action, helper}) => (
+    <Box sx={{display: "contents"}}>
+        <FormLabel
+            required={required}
+            sx={{gridColumn: 1, "& .MuiFormLabel-asterisk": {color: "error.main"}}}
+        >
+            {label}
+        </FormLabel>
+        <Box sx={{gridColumn: 2}}>{field}</Box>
+        {action && <Box sx={{gridColumn: 3}}>{action}</Box>}
+        {helper && <Box sx={{gridColumn: 2, mb: 1}}>{helper}</Box>}
+    </Box>
+)
+
+const FieldGrid: FC<{readonly children: ReactNode}> = ({children}) => (
+    <Box
+        sx={{
+            alignItems: "center",
+            columnGap: 2,
+            display: "grid",
+            gridTemplateColumns: "10rem minmax(0, 34rem) auto",
+            rowGap: 0.75,
+        }}
+    >
+        {children}
+    </Box>
+)
 
 interface AdvancedSettingsProps {
     readonly id: string
@@ -59,13 +120,14 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
     const [protocol, setProtocol] = useState<Protocol>(savedServerUrl.startsWith("http://") ? "http" : "https")
     const [hostInput, setHostInput] = useState(stripProtocol(savedServerUrl))
     const [isServerReachable, setIsServerReachable] = useState<boolean | null>(null)
-    const serverUrlCheckmark = useCheckmarkFade()
-
     const [orgNameInput, setOrgNameInput] = useState(savedOrgName)
-    const orgNameCheckmark = useCheckmarkFade()
 
     const normalized = normalizeUrlInput(hostInput, protocol)
     const serverUrl = normalized.host ? `${normalized.protocol}://${normalized.host}` : ""
+    const orgName = orgNameInput.trim()
+
+    const isPublishingOn = Boolean(savedServerUrl && savedOrgName)
+    const hasChanges = serverUrl !== savedServerUrl || orgName !== savedOrgName
 
     const handleHostChange = (host: string) => {
         setHostInput(host)
@@ -77,132 +139,143 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
         setIsServerReachable(result.success)
     }
 
-    const handleSaveServerUrl = () => {
-        // Saving an empty URL turns publishing off
-        updateSettings({nsDeploy: {serverUrl: serverUrl || null}})
-        serverUrlCheckmark.trigger()
+    const handleSave = () => {
+        // Saving an empty server turns publishing off
+        updateSettings({nsDeploy: {serverUrl: serverUrl || null, orgName: orgName || null}})
     }
 
-    const handleSaveOrgName = () => {
-        updateSettings({nsDeploy: {orgName: orgNameInput.trim() || null}})
-        orgNameCheckmark.trigger()
-    }
-
-    const getNsDeploySubsection = () => (
-        <SettingsSubsection title="NS Deploy">
-            <SettingsRow
-                checkmark={serverUrlCheckmark}
-                id={`${id}-ns-deploy-row`}
-                label=""
-                tooltip="URL for the NS Deploy server that published networks are deployed to."
+    const getPublishingSubsection = () => (
+        <SettingsSubsection
+            caption="NS Deploy"
+            status={
+                isPublishingOn ? (
+                    <StatusText color="success.main">On</StatusText>
+                ) : (
+                    <StatusText color="text.disabled">Off</StatusText>
+                )
+            }
+            title="Publishing"
+        >
+            <Typography
+                color="text.secondary"
+                variant="body2"
             >
-                <Select<Protocol>
-                    aria-label="NS Deploy protocol"
-                    onChange={(e) => {
-                        setProtocol(e.target.value)
-                        setIsServerReachable(null)
-                    }}
-                    size="small"
-                    sx={{minWidth: 100, flexShrink: 0}}
-                    value={protocol}
-                >
-                    <MenuItem value="https">https://</MenuItem>
-                    <MenuItem value="http">http://</MenuItem>
-                </Select>
-                <TextField
-                    onBlur={() => {
-                        setHostInput(normalized.host)
-                        setProtocol(normalized.protocol)
-                    }}
-                    onChange={(e) => handleHostChange(e.target.value)}
-                    placeholder="nsdeploy.example.com"
-                    size="small"
-                    slotProps={{
-                        htmlInput: {"aria-label": NS_DEPLOY_HOST_LABEL},
-                        input: {
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton
-                                        aria-label="Clear NS Deploy server"
-                                        edge="end"
-                                        onClick={() => handleHostChange("")}
-                                        size="small"
-                                    >
-                                        <ClearIcon fontSize="small" />
-                                    </IconButton>
-                                </InputAdornment>
-                            ),
-                        },
-                    }}
-                    sx={{flex: 1}}
-                    value={hostInput}
+                Adds a <strong>Publish</strong> button to every agent network. MAUI sends the network&apos;s HOCON (the
+                same file as Download) to this server.
+            </Typography>
+            <FieldGrid>
+                <FieldRow
+                    action={
+                        <Button
+                            aria-label={TEST_NS_DEPLOY_SERVER_LABEL}
+                            disabled={!serverUrl}
+                            onClick={handleTest}
+                            size="small"
+                            variant="contained"
+                        >
+                            Test
+                        </Button>
+                    }
+                    field={
+                        <TextField
+                            onBlur={() => {
+                                setHostInput(normalized.host)
+                                setProtocol(normalized.protocol)
+                            }}
+                            onChange={(e) => handleHostChange(e.target.value)}
+                            placeholder="nsdeploy.example.com"
+                            size="small"
+                            slotProps={{
+                                htmlInput: {"aria-label": NS_DEPLOY_HOST_LABEL},
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment
+                                            position="start"
+                                            sx={{
+                                                borderRight: 1,
+                                                borderColor: "divider",
+                                                height: "100%",
+                                                mr: 1.5,
+                                                pr: 1,
+                                            }}
+                                        >
+                                            <Select<Protocol>
+                                                aria-label="NS Deploy protocol"
+                                                disableUnderline={true}
+                                                onChange={(e) => {
+                                                    setProtocol(e.target.value)
+                                                    setIsServerReachable(null)
+                                                }}
+                                                value={protocol}
+                                                variant="standard"
+                                            >
+                                                <MenuItem value="https">https://</MenuItem>
+                                                <MenuItem value="http">http://</MenuItem>
+                                            </Select>
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="Clear NS Deploy server"
+                                                edge="end"
+                                                onClick={() => handleHostChange("")}
+                                                size="small"
+                                            >
+                                                <ClearIcon fontSize="small" />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                },
+                            }}
+                            fullWidth={true}
+                            value={hostInput}
+                        />
+                    }
+                    helper={
+                        isServerReachable === null ? null : isServerReachable ? (
+                            <StatusText color="success.main">Connected</StatusText>
+                        ) : (
+                            <StatusText color="error.main">Couldn&apos;t connect</StatusText>
+                        )
+                    }
+                    label="Server"
                 />
-                <StatusLight
-                    id={`${id}-ns-deploy-status-light`}
-                    statusValue={isServerReachable === null ? "unknown" : isServerReachable ? "green" : "red"}
+                <FieldRow
+                    field={
+                        <TextField
+                            fullWidth={true}
+                            onChange={(e) => setOrgNameInput(e.target.value)}
+                            size="small"
+                            slotProps={{htmlInput: {"aria-label": ORG_NAME_LABEL}}}
+                            value={orgNameInput}
+                        />
+                    }
+                    helper={
+                        <Typography
+                            color="text.secondary"
+                            sx={{letterSpacing: "normal"}}
+                            variant="caption"
+                        >
+                            Sent as org_name with every deploy. Published networks are grouped under it.
+                        </Typography>
+                    }
+                    label={ORG_NAME_LABEL}
+                    required={true}
                 />
+            </FieldGrid>
+            <Box>
                 <Button
-                    aria-label={TEST_NS_DEPLOY_SERVER_LABEL}
-                    disabled={!serverUrl}
-                    onClick={handleTest}
-                    size="small"
-                    variant="contained"
-                >
-                    Test
-                </Button>
-                <Button
-                    aria-label={SAVE_NS_DEPLOY_SERVER_LABEL}
-                    disabled={serverUrl === savedServerUrl}
-                    onClick={handleSaveServerUrl}
+                    aria-label={SAVE_PUBLISHING_LABEL}
+                    disabled={!hasChanges}
+                    id={`${id}-publishing-save`}
+                    onClick={handleSave}
                     size="small"
                     variant="contained"
                 >
                     Save
                 </Button>
-            </SettingsRow>
-            <Typography
-                color="text.secondary"
-                variant="body2"
-            >
-                Optional. When set, a <strong>Publish</strong> button appears on each agent network. MAUI posts the
-                network&apos;s HOCON — the same file you get from Download — to this server.
-            </Typography>
-        </SettingsSubsection>
-    )
-
-    const getOrganizationSubsection = () => (
-        <SettingsSubsection title="Organization">
-            <SettingsRow
-                checkmark={orgNameCheckmark}
-                id={`${id}-org-name-row`}
-                label={ORG_NAME_LABEL}
-                required={true}
-                tooltip="Published networks are grouped under this organization on the NS Deploy server."
-            >
-                <TextField
-                    onChange={(e) => setOrgNameInput(e.target.value)}
-                    size="small"
-                    slotProps={{htmlInput: {"aria-label": ORG_NAME_LABEL}}}
-                    sx={{flex: 1}}
-                    value={orgNameInput}
-                />
-                <Button
-                    aria-label={SAVE_ORG_NAME_LABEL}
-                    disabled={orgNameInput.trim() === savedOrgName}
-                    onClick={handleSaveOrgName}
-                    size="small"
-                    variant="contained"
-                >
-                    Save
-                </Button>
-            </SettingsRow>
-            <Typography
-                color="text.secondary"
-                variant="body2"
-            >
-                Required to publish. Sent as <code>org_name</code> with every deploy. Published networks are grouped
-                under it.
-            </Typography>
+            </Box>
         </SettingsSubsection>
     )
 
@@ -221,10 +294,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                     />
                 </IconButton>
             </Box>
-            <Collapse in={isExpanded}>
-                {getNsDeploySubsection()}
-                {getOrganizationSubsection()}
-            </Collapse>
+            <Collapse in={isExpanded}>{getPublishingSubsection()}</Collapse>
         </Section>
     )
 }
