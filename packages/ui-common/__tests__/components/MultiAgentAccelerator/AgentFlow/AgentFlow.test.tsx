@@ -1698,11 +1698,7 @@ describe("AgentFlow", () => {
 
     describe("Publishing", () => {
         it("Should offer to publish a temporary network", async () => {
-            act(() => {
-                useTempNetworksStore
-                    .getState()
-                    .setTempNetworks([makeTempNetwork(OLD_NETWORK_ID, [], "published_network")])
-            })
+            useTempNetworksStore.getState().setTempNetworks([makeTempNetwork(OLD_NETWORK_ID, [], "published_network")])
 
             renderAgentFlowComponent({
                 isTemporaryNetwork: true,
