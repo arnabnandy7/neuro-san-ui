@@ -14,6 +14,7 @@ const renderPanel = (deployment: Deployment) =>
         <DeployPanel
             deployment={deployment}
             id="deploy-panel"
+            isUnpublishing={false}
             onUnpublish={vi.fn()}
         />
     )

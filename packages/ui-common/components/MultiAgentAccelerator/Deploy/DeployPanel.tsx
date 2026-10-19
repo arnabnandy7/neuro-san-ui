@@ -46,13 +46,14 @@ const formatPublishedAgo = (publishedAt: number): string => {
 interface DeployPanelProps {
     readonly deployment: Deployment
     readonly id: string
+    readonly isUnpublishing: boolean
     readonly onUnpublish: () => void
 }
 
 /**
  * Details of a network's deployment: progress while publishing, or the live URL once published.
  */
-export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, onUnpublish}) => (
+export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, isUnpublishing, onUnpublish}) => (
     <Box
         id={id}
         sx={{display: "flex", flexDirection: "column", gap: 1.5, p: 2, width: "22rem"}}
@@ -93,11 +94,12 @@ export const DeployPanel: FC<DeployPanelProps> = ({deployment, id, onUnpublish})
         />
         {deployment.status === DeploymentStatus.Live && (
             <Button
+                disabled={isUnpublishing}
                 onClick={onUnpublish}
                 size="small"
                 sx={{alignSelf: "flex-start", color: "error.light", minWidth: 0, p: 0, textTransform: "none"}}
             >
-                Unpublish
+                {isUnpublishing ? "Unpublishing..." : "Unpublish"}
             </Button>
         )}
     </Box>

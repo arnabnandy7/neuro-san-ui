@@ -209,6 +209,27 @@ describe("DeployButton", () => {
         await screen.findByRole("button", {name: "View live"})
     })
 
+    it("should not allow a second unpublish while the first is still running", async () => {
+        let finishUnpublish!: () => void
+        vi.mocked(unpublishNetwork).mockImplementation(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishUnpublish = resolve
+                })
+        )
+        renderDeployButton()
+        await publishAndWaitUntilLive()
+        await openDetails()
+        const unpublishButton = screen.getByRole("button", {name: "Unpublish"})
+
+        await user.click(unpublishButton)
+
+        expect(screen.getByRole("button", {name: "Unpublishing..."})).toBeDisabled()
+
+        finishUnpublish()
+        await screen.findByRole("button", {name: "Publish"})
+    })
+
     it("should report the error and stay live when unpublishing fails", async () => {
         vi.mocked(unpublishNetwork).mockRejectedValue(new Error(DEPLOY_ERROR))
         renderDeployButton()

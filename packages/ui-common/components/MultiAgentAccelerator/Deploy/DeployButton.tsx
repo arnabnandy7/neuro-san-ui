@@ -67,6 +67,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
 
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
     const [isPanelOpen, setIsPanelOpen] = useState(false)
+    const [isUnpublishing, setIsUnpublishing] = useState(false)
 
     const handlePublish = async () => {
         setIsPanelOpen(true)
@@ -83,7 +84,9 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
     }
 
     const handleUnpublish = async () => {
+        setIsUnpublishing(true)
         await unpublish()
+        setIsUnpublishing(false)
         setIsPanelOpen(false)
     }
 
@@ -162,6 +165,7 @@ export const DeployButton: FC<DeployButtonProps> = ({id, networkName}) => {
                     <DeployPanel
                         deployment={deployment}
                         id={`${id}-panel`}
+                        isUnpublishing={isUnpublishing}
                         onUnpublish={handleUnpublish}
                     />
                 </Popover>
