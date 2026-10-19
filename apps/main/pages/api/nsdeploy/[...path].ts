@@ -16,16 +16,6 @@ limitations under the License.
 
 import {NextApiRequest, NextApiResponse} from "next"
 
-/**
- * Bearer token for the NS Deploy server.
- *
- * WARNING: this route sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can
- * use the app can have it sent to a server they control. This repo is also public, so a token committed here is
- * public. Before using a real token, consider reading it from an environment variable (like OPENAI_API_KEY) and only
- * forwarding to an allowed host.
- */
-const NSDEPLOY_BEARER_TOKEN = ""
-
 // Read the raw body so multipart uploads pass through unchanged
 export const config = {api: {bodyParser: false}}
 
@@ -75,11 +65,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const contentType = req.headers["content-type"]
 
+    // WARNING: this sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can use
+    // the app can have it sent to a server they control. Consider only forwarding to an allowed host.
+    const token = process.env["NSDEPLOY_BEARER_TOKEN"]
+
     try {
         const upstream = await fetch(target, {
             method: req.method,
             headers: {
-                Authorization: `Bearer ${NSDEPLOY_BEARER_TOKEN}`,
+                ...(token ? {Authorization: `Bearer ${token}`} : {}),
                 ...(contentType ? {"Content-Type": contentType} : {}),
             },
             body: req.method === "GET" || req.method === "HEAD" ? undefined : await readBody(req),
