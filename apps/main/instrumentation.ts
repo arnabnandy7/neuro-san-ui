@@ -114,4 +114,5 @@ export const register = () => {
     console.info("Logo service token:", process.env["LOGO_SERVICE_TOKEN"] ? "set" : "not set")
     console.info("Neuro SAN server URL:", process.env["NEURO_SAN_SERVER_URL"])
     console.info("Publishing enabled:", enablePublishing)
+    console.info("NS Deploy bearer token:", process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR] ? "set" : "not set")
 }

@@ -72,9 +72,10 @@ describe("instrumentation", () => {
         gaMeasurementID: string,
         openAIKeySet: string,
         logoServiceTokenSet: string,
-        neuroSanServerURL: string
+        neuroSanServerURL: string,
+        bearerTokenSet: string
     ) => {
-        expect(console.info).toHaveBeenCalledTimes(8)
+        expect(console.info).toHaveBeenCalledTimes(9)
         expect(console.info).toHaveBeenCalledWith("Start-up: Environment variables checked successfully.")
         expect(console.info).toHaveBeenCalledWith("Authentication enabled:", enableAuthentication)
         expect(console.info).toHaveBeenCalledWith("Google Analytics enabled:", enableGoogleAnalytics)
@@ -83,6 +84,7 @@ describe("instrumentation", () => {
         expect(console.info).toHaveBeenCalledWith("Logo service token:", logoServiceTokenSet)
         expect(console.info).toHaveBeenCalledWith("Neuro SAN server URL:", neuroSanServerURL)
         expect(console.info).toHaveBeenCalledWith("Publishing enabled:", enablePublishing)
+        expect(console.info).toHaveBeenCalledWith("NS Deploy bearer token:", bearerTokenSet)
     }
 
     it("should not throw if env vars are all set", () => {
@@ -97,7 +99,8 @@ describe("instrumentation", () => {
             `${GA_MEASUREMENT_ID_ENV_VAR}-test_value`,
             "set",
             "set",
-            "NEURO_SAN_SERVER_URL-test_value"
+            "NEURO_SAN_SERVER_URL-test_value",
+            "set"
         )
     })
 
@@ -153,7 +156,8 @@ describe("instrumentation", () => {
             `${GA_MEASUREMENT_ID_ENV_VAR}-test_value`,
             "set",
             "set",
-            "NEURO_SAN_SERVER_URL-test_value"
+            "NEURO_SAN_SERVER_URL-test_value",
+            "set"
         )
     })
 
@@ -169,6 +173,7 @@ describe("instrumentation", () => {
         delete process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR]
         delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
         delete process.env[ENABLE_PUBLISHING_ENV_VAR]
+        delete process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
 
         // Spy on console.warn to suppress output during test
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())
@@ -180,6 +185,15 @@ describe("instrumentation", () => {
         })
 
         // Check start-up messages
-        expectConsoleOutput(false, false, false, "not set", "not set", "not set", "NEURO_SAN_SERVER_URL-test_value")
+        expectConsoleOutput(
+            false,
+            false,
+            false,
+            "not set",
+            "not set",
+            "not set",
+            "NEURO_SAN_SERVER_URL-test_value",
+            "not set"
+        )
     })
 })
