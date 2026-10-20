@@ -16,6 +16,8 @@ limitations under the License.
 
 import {NextApiRequest, NextApiResponse} from "next"
 
+import {NSDEPLOY_BEARER_TOKEN_ENV_VAR} from "../../../Const"
+
 // Read the raw body so multipart uploads pass through unchanged
 export const config = {api: {bodyParser: false}}
 
@@ -48,6 +50,13 @@ const parseServerUrl = (server: string | string[] | undefined): URL | null => {
  * token added.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    // WARNING: this sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can use
+    // the app can have it sent to a server they control. Consider only forwarding to an allowed host.
+    const token = process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
+    if (!token) {
+        throw new Error(`${NSDEPLOY_BEARER_TOKEN_ENV_VAR} is not set`)
+    }
+
     const {path, server, ...query} = req.query
 
     const serverUrl = parseServerUrl(server)
@@ -65,15 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const contentType = req.headers["content-type"]
 
-    // WARNING: this sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can use
-    // the app can have it sent to a server they control. Consider only forwarding to an allowed host.
-    const token = process.env["NSDEPLOY_BEARER_TOKEN"]
-
     try {
         const upstream = await fetch(target, {
             method: req.method,
             headers: {
-                ...(token ? {Authorization: `Bearer ${token}`} : {}),
+                Authorization: `Bearer ${token}`,
                 ...(contentType ? {"Content-Type": contentType} : {}),
             },
             body: req.method === "GET" || req.method === "HEAD" ? undefined : await readBody(req),

@@ -41,6 +41,7 @@ describe("NS Deploy proxy", () => {
     beforeEach(() => {
         fetchMock = vi.fn<typeof fetch>()
         vi.stubGlobal("fetch", fetchMock)
+        vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "test-token")
     })
 
     afterEach(() => {
@@ -48,9 +49,8 @@ describe("NS Deploy proxy", () => {
         vi.unstubAllEnvs()
     })
 
-    // GET /deployments/{id}/wait
+    // GET /deployments/{id}/wait - Status of Deployment
     it("should forward to the server path with the query and the bearer token from the environment", async () => {
-        vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "test-token")
         fetchMock.mockResolvedValue(Response.json({id: "dep-1", status: "ready"}))
 
         const res = await callProxy("GET", {path: ["deployments", "dep-1", "wait"], server: SERVER_URL, timeout: "60"})
@@ -62,17 +62,17 @@ describe("NS Deploy proxy", () => {
         expect(JSON.parse(res._getData().toString())).toEqual({id: "dep-1", status: "ready"})
     })
 
-    // GET /health
-    it("should forward without a bearer token when none is configured", async () => {
+    // GET /health - Health Check, refused before it's sent
+    it("should refuse to forward anything when no bearer token is configured", async () => {
         vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "")
-        fetchMock.mockResolvedValue(Response.json({status: "ok"}))
 
-        await callProxy("GET", {path: ["health"], server: SERVER_URL})
-
-        expect(fetchMock.mock.calls[0][1]?.headers).not.toHaveProperty("Authorization")
+        await expect(callProxy("GET", {path: ["health"], server: SERVER_URL})).rejects.toThrow(
+            "NSDEPLOY_BEARER_TOKEN is not set"
+        )
+        expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    // POST /deployments
+    // POST /deployments - Create Network
     it("should pass the upload body and its content type through unchanged", async () => {
         fetchMock.mockResolvedValue(Response.json({id: "dep-1"}, {status: 202}))
 
@@ -85,7 +85,7 @@ describe("NS Deploy proxy", () => {
         expect(res._getStatusCode()).toBe(202)
     })
 
-    // DELETE /deployments/{id}
+    // DELETE /deployments/{id} - Delete Network
     it("should forward to a server URL that ends in a slash and relay an empty response", async () => {
         fetchMock.mockResolvedValue(new Response(null, {status: 204}))
 
@@ -107,7 +107,7 @@ describe("NS Deploy proxy", () => {
         expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    // GET /health
+    // GET /health - Health Check
     it("should explain when the server can't be reached", async () => {
         fetchMock.mockRejectedValue(new Error("getaddrinfo ENOTFOUND"))
 

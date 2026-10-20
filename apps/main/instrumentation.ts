@@ -26,6 +26,7 @@ import {
     ENABLE_GOOGLE_ANALYTICS_ENV_VAR,
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
+    NSDEPLOY_BEARER_TOKEN_ENV_VAR,
 } from "./Const"
 
 /**
@@ -86,6 +87,16 @@ export const register = () => {
         )
     }
 
+    // Publishing sends every request to the NS Deploy server with this token
+    const enablePublishing = process.env[ENABLE_PUBLISHING_ENV_VAR] === "true"
+    if (enablePublishing && isMissing(NSDEPLOY_BEARER_TOKEN_ENV_VAR)) {
+        throw new Error(
+            `Publishing is enabled (${ENABLE_PUBLISHING_ENV_VAR} is true) but the ${
+                NSDEPLOY_BEARER_TOKEN_ENV_VAR
+            } environment variable is empty or undefined.`
+        )
+    }
+
     // Optional env vars
     const missingOptionalEnvVars = OPTIONAL_ENV_VARS.filter((envVar) => isMissing(envVar))
     if (missingOptionalEnvVars.length > 0) {
@@ -102,5 +113,5 @@ export const register = () => {
     console.info("OpenAI API key:", process.env["OPENAI_API_KEY"] ? "set" : "not set")
     console.info("Logo service token:", process.env["LOGO_SERVICE_TOKEN"] ? "set" : "not set")
     console.info("Neuro SAN server URL:", process.env["NEURO_SAN_SERVER_URL"])
-    console.info("Publishing enabled:", process.env[ENABLE_PUBLISHING_ENV_VAR] === "true")
+    console.info("Publishing enabled:", enablePublishing)
 }
