@@ -22,7 +22,7 @@ import handler from "../../../../pages/api/nsdeploy/[...path]"
 const SERVER_URL = "https://nsdeploy.test"
 
 // Each test uses one of the NS Deploy endpoints the client calls (see controller/nsDeploy/NsDeploy.ts). The
-// comment on each test names it.
+// comment on each test or group names it.
 describe("NS Deploy proxy", () => {
     withStrictMocks()
 
@@ -63,16 +63,6 @@ describe("NS Deploy proxy", () => {
         expect(JSON.parse(res._getData().toString())).toEqual({id: "dep-1", status: "ready"})
     })
 
-    // GET /health - Health Check, refused before it's sent
-    it("should not exist while publishing is disabled", async () => {
-        vi.stubEnv("ENABLE_PUBLISHING", "false")
-
-        const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
-
-        expect(res._getStatusCode()).toBe(404)
-        expect(fetchMock).not.toHaveBeenCalled()
-    })
-
     // POST /deployments - Create Network
     it("should pass the upload body and its content type through unchanged", async () => {
         fetchMock.mockResolvedValue(Response.json({id: "dep-1"}, {status: 202}))
@@ -96,25 +86,35 @@ describe("NS Deploy proxy", () => {
         expect(res._getStatusCode()).toBe(204)
     })
 
-    // GET /health, refused before it's sent
-    it.each([
-        {desc: "missing", server: undefined},
-        {desc: "not a URL", server: "not a url"},
-        {desc: "not http(s)", server: "file:///etc/passwd"},
-    ])("should refuse a server URL that's $desc", async ({server}) => {
-        const res = await callProxy("GET", {path: ["health"], ...(server ? {server} : {})})
+    // GET /health - Health Check. The proxy doesn't look at the path, so these use the simplest endpoint.
+    describe("Health check", () => {
+        it("should not exist while publishing is disabled", async () => {
+            vi.stubEnv("ENABLE_PUBLISHING", "false")
 
-        expect(res._getStatusCode()).toBe(400)
-        expect(fetchMock).not.toHaveBeenCalled()
-    })
+            const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
 
-    // GET /health - Health Check
-    it("should explain when the server can't be reached", async () => {
-        fetchMock.mockRejectedValue(new Error("getaddrinfo ENOTFOUND"))
+            expect(res._getStatusCode()).toBe(404)
+            expect(fetchMock).not.toHaveBeenCalled()
+        })
 
-        const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
+        it.each([
+            {desc: "missing", server: undefined},
+            {desc: "not a URL", server: "not a url"},
+            {desc: "not http(s)", server: "file:///etc/passwd"},
+        ])("should refuse a server URL that's $desc", async ({server}) => {
+            const res = await callProxy("GET", {path: ["health"], ...(server ? {server} : {})})
 
-        expect(res._getStatusCode()).toBe(502)
-        expect(res._getJSONData().detail).toContain("getaddrinfo ENOTFOUND")
+            expect(res._getStatusCode()).toBe(400)
+            expect(fetchMock).not.toHaveBeenCalled()
+        })
+
+        it("should explain when the server can't be reached", async () => {
+            fetchMock.mockRejectedValue(new Error("getaddrinfo ENOTFOUND"))
+
+            const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
+
+            expect(res._getStatusCode()).toBe(502)
+            expect(res._getJSONData().detail).toContain("getaddrinfo ENOTFOUND")
+        })
     })
 })
