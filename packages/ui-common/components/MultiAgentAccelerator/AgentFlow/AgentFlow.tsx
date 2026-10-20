@@ -171,7 +171,7 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     const flowWrapperRef = useRef<HTMLDivElement | null>(null)
     const fitViewFrameRef = useRef<number | null>(null)
 
-    const {enablePublishing} = useEnvironmentStore()
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
 
     const scheduleFitView = useCallback(() => {
         if (fitViewFrameRef.current !== null) {

@@ -128,7 +128,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     const nativeNamesCheckmark = useCheckmarkFade()
 
     // Publishing feature switch
-    const {enablePublishing} = useEnvironmentStore()
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
 
     /*
         Neuro SAN URL
