@@ -21,34 +21,19 @@ import {
     ChangeEvent as ReactChangeEvent,
     MouseEvent as ReactMouseEvent,
     ReactNode,
-    useCallback,
     useEffect,
     useMemo,
     useState,
 } from "react"
 
-import {ApiKeyErrorBanner, ApiKeyFailure} from "./ApiKeyErrorBanner"
-import {ApiKeyInput} from "./ApiKeyInput"
+import {ByokInputs, ByokStorageTooltip, useByokKeyManager} from "./ByokInputs"
 import {ByokUnsavedChangesModal} from "./ByokUnsavedChangesModal"
 import {useCheckmarkFade} from "./FadingCheckmark"
 import {SettingsRow} from "./SettingsRow"
 import {getBrandingSuggestions, testConnection, TestConnectionResult} from "../../controller/agent/Agent"
-import {
-    isAnthropicKeyValid,
-    isOpenAIKeyValid,
-    KeyValidationFailure,
-    KeyValidationResult,
-} from "../../controller/llm/Providers"
 import {BrandingSuggestions} from "../../controller/Types/Branding"
 import {useEnvironmentStore} from "../../state/Environment"
-import {
-    API_KEYS_TTL_MS,
-    DEFAULT_SETTINGS,
-    getApiKey,
-    LLMProvider,
-    PaletteKey,
-    useSettingsStore,
-} from "../../state/Settings"
+import {DEFAULT_SETTINGS, PaletteKey, useSettingsStore} from "../../state/Settings"
 import {PALETTES} from "../../Theme/Palettes"
 import {ConfirmationModal} from "../Common/ConfirmationModal"
 import {MUIDialog} from "../Common/MUIDialog"
@@ -110,15 +95,6 @@ interface SettingsDialogProps {
     readonly isOpen?: boolean
     readonly logoServiceToken?: string
     readonly onClose?: () => void
-}
-
-interface LLMProviderInputConfig {
-    checkmark: ReturnType<typeof useCheckmarkFade>
-    vendor: LLMProvider
-    idSuffix: string
-    logo: string
-    onTest: (key: string) => Promise<KeyValidationResult>
-    placeholder: string
 }
 
 interface SettingsSubsectionProps {
@@ -198,17 +174,18 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     const enableZenMode = useSettingsStore((state) => state.settings.behavior.enableZenMode)
     const enableZenModeCheckmark = useCheckmarkFade()
 
-    // API keys
-    const apiKeys = useSettingsStore((state) => state.settings.apiKeys)
-    const openAIKeyCheckmark = useCheckmarkFade()
-    const anthropicKeyCheckmark = useCheckmarkFade()
-
-    // Failing key-test results, aggregated into the banner at the top of the API Keys section
-    const [keyTestResults, setKeyTestResults] = useState<Partial<Record<LLMProvider, ApiKeyFailure | null>>>({})
-
-    // Draft API keys entered by user but not yet persisted
-    const [draftKeys, setDraftKeys] = useState<Partial<Record<LLMProvider, string>>>({})
-    const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState<boolean>(false)
+    // BYOK state and unsaved changes lifecycle
+    const {
+        activeConfigs: apiKeyConfigs,
+        handleClose: handleSettingsClose,
+        handleDiscard: handleDiscardUnsavedKeys,
+        handleKeyResultChange,
+        handleSave: handleSaveUnsavedKeys,
+        handleValueChange,
+        keyFailures,
+        persistKey,
+        showUnsavedChangesModal,
+    } = useByokKeyManager({onClose})
 
     // Native names setting
     const useNativeNames = useSettingsStore((state) => state.settings.appearance.useNativeNames)
@@ -356,53 +333,6 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         logoCheckmark.trigger()
     }
 
-    /**
-     * Records the latest key-test result for a vendor, or clears it when result is null.
-     * @param vendor Vendor for this key: see the list in LLMProvider type
-     * @param result Validation failure to display, or null to clear
-     */
-    const handleKeyResultChange = useCallback((vendor: LLMProvider, result: KeyValidationFailure | null) => {
-        setKeyTestResults((prev) => ({
-            ...prev,
-            [vendor]: result ? {vendor, result} : null,
-        }))
-    }, [])
-
-    const handleValueChange = useCallback((vendor: LLMProvider, value: string) => {
-        setDraftKeys((prev) => ({
-            ...prev,
-            [vendor]: value,
-        }))
-    }, [])
-
-    /**
-     * Used for both saving and removing keys.
-     * @param vendor Vendor for this key: see the list in LLMProvider type
-     * @param key Value of the key
-     * @param checkmark Checkmark to trigger on save
-     * @param now Timestamp for "now"
-     */
-    const persistKey = (
-        vendor: LLMProvider,
-        key: string,
-        checkmark: ReturnType<typeof useCheckmarkFade>,
-        now: number
-    ) => {
-        updateSettings({
-            apiKeys: {
-                [vendor]: {
-                    value: key,
-                    expiresAt: key ? now + API_KEYS_TTL_MS : 0,
-                },
-            },
-        })
-        setDraftKeys((prev) => ({
-            ...prev,
-            [vendor]: undefined,
-        }))
-        checkmark.trigger()
-    }
-
     const handleTestConnection = async () => {
         const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
 
@@ -458,67 +388,6 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
 
     const availablePalettes = customer && brandingRangePalette?.length > 0 ? {brand: brandingRangePalette} : PALETTES
     const paletteKeys: PaletteKey[] = Object.keys(availablePalettes) as PaletteKey[]
-
-    // Config for API key inputs, so we can easily add new providers in the future by just adding to this array
-    const apiKeyConfigs: LLMProviderInputConfig[] = useMemo(
-        () => [
-            {
-                checkmark: openAIKeyCheckmark,
-                idSuffix: "openai",
-                logo: theme.palette.mode === "dark" ? "/OpenAI-white.png" : "/OpenAI-black.png",
-                onTest: isOpenAIKeyValid,
-                placeholder: "sk-...",
-                vendor: "OpenAI",
-            },
-            {
-                checkmark: anthropicKeyCheckmark,
-                idSuffix: "anthropic",
-                logo: "/claude.png",
-                onTest: isAnthropicKeyValid,
-                placeholder: "sk-ant-...",
-                vendor: "Anthropic",
-            },
-        ],
-        [openAIKeyCheckmark, anthropicKeyCheckmark, theme.palette.mode]
-    )
-
-    const hasUnsavedKeys = useMemo(() => {
-        return apiKeyConfigs.some(({vendor}) => {
-            const draft = draftKeys[vendor]
-            if (draft === undefined) {
-                return false
-            }
-            const persisted = getApiKey(apiKeys, vendor) ?? ""
-            return draft !== persisted
-        })
-    }, [apiKeyConfigs, draftKeys, apiKeys])
-
-    const handleClose = () => {
-        if (hasUnsavedKeys) {
-            setShowUnsavedChangesModal(true)
-            return
-        }
-        onClose?.()
-    }
-
-    const handleDiscardUnsavedKeys = () => {
-        setDraftKeys({})
-        setShowUnsavedChangesModal(false)
-        onClose?.()
-    }
-
-    const handleSaveUnsavedKeys = () => {
-        const now = Date.now()
-        apiKeyConfigs.forEach(({checkmark, vendor}) => {
-            const draft = draftKeys[vendor]
-            if (draft !== undefined && draft !== (getApiKey(apiKeys, vendor) ?? "")) {
-                persistKey(vendor, draft, checkmark, now)
-            }
-        })
-        setDraftKeys({})
-        setShowUnsavedChangesModal(false)
-        onClose?.()
-    }
 
     const getConfirmationModal = () => (
         <ConfirmationModal
@@ -627,81 +496,21 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         </Section>
     )
 
-    // Collect the current test failure for each vendor that has one.
-    const keyFailures: ApiKeyFailure[] = apiKeyConfigs.flatMap(({vendor}) => {
-        const failure = keyTestResults[vendor]
-        return failure ? [failure] : []
-    })
-
     const getApiKeysSection = () => (
         <Section>
             <Box sx={{display: "flex", alignItems: "center", gap: theme.spacing(1)}}>
                 <SettingsSectionTitle>API Keys</SettingsSectionTitle>
-                <Tooltip
-                    title="API keys are stored locally in your browser's memory for the duration of your session only
-                    and are only sent to the Neuro SAN service for use with the associated LLM provider when you use
-                    this application to interact with networks.
-                    Your keys are never sent to any other servers or services and are not stored on our servers.
-                    When you close this tab or your browser, your keys will be permanently cleared from memory and
-                    you will need to enter them again to use services that require them."
-                >
-                    <Typography
-                        sx={{
-                            alignSelf: "flex-start",
-                            color: "var(--bs-secondary)",
-                            cursor: "help",
-                            fontSize: "0.7rem",
-                            lineHeight: 1,
-                            mt: 0.5,
-                        }}
-                        variant="caption"
-                    >
-                        <Box
-                            component="span"
-                            sx={{mr: 0.5}}
-                        >
-                            ⓘ
-                        </Box>
-                        <Box
-                            component="span"
-                            sx={{
-                                borderBottom: "1px dashed",
-                                pb: 0.25,
-                            }}
-                        >
-                            How are my keys stored and used?
-                        </Box>
-                    </Typography>
-                </Tooltip>
+                <ByokStorageTooltip />
             </Box>
             <SettingsSubsection title="LLM Providers">
-                <ApiKeyErrorBanner
-                    failures={keyFailures}
-                    id={`${id}-api-key-error-banner`}
+                <ByokInputs
+                    configs={apiKeyConfigs}
+                    id={id}
+                    keyFailures={keyFailures}
+                    onKeyResultChange={handleKeyResultChange}
+                    onPersistKey={persistKey}
+                    onValueChange={handleValueChange}
                 />
-                <Box sx={{display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5}}>
-                    {apiKeyConfigs.map(({checkmark, vendor, idSuffix, logo, onTest, placeholder}) => (
-                        <SettingsRow
-                            checkmark={checkmark}
-                            key={`${id}-${idSuffix}`}
-                            label=""
-                            tooltip={`API key for ${vendor}.`}
-                        >
-                            <ApiKeyInput
-                                forgetKey={() => persistKey(vendor, "", checkmark, 0)}
-                                id={`${id}-${idSuffix}`}
-                                logo={logo}
-                                onResultChange={handleKeyResultChange}
-                                onSave={(key) => persistKey(vendor, key, checkmark, Date.now())}
-                                onTest={onTest}
-                                onValueChange={handleValueChange}
-                                persistedValue={getApiKey(apiKeys, vendor)}
-                                placeholder={placeholder}
-                                vendor={vendor}
-                            />
-                        </SettingsRow>
-                    ))}
-                </Box>
             </SettingsSubsection>
         </Section>
     )
@@ -1165,7 +974,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
                 id={id}
                 title={<Box sx={{fontSize: "1.5rem"}}>Settings</Box>}
                 isOpen={isOpen}
-                onClose={handleClose}
+                onClose={handleSettingsClose}
                 paperProps={{
                     minWidth: "50%",
                     minHeight: "50%",
