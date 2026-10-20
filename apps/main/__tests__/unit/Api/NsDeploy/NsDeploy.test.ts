@@ -41,6 +41,7 @@ describe("NS Deploy proxy", () => {
     beforeEach(() => {
         fetchMock = vi.fn<typeof fetch>()
         vi.stubGlobal("fetch", fetchMock)
+        vi.stubEnv("ENABLE_PUBLISHING", "true")
         vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "test-token")
     })
 
@@ -63,12 +64,12 @@ describe("NS Deploy proxy", () => {
     })
 
     // GET /health - Health Check, refused before it's sent
-    it("should refuse to forward anything when no bearer token is configured", async () => {
-        vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "")
+    it("should not exist while publishing is disabled", async () => {
+        vi.stubEnv("ENABLE_PUBLISHING", "false")
 
-        await expect(callProxy("GET", {path: ["health"], server: SERVER_URL})).rejects.toThrow(
-            "NSDEPLOY_BEARER_TOKEN is not set"
-        )
+        const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
+
+        expect(res._getStatusCode()).toBe(404)
         expect(fetchMock).not.toHaveBeenCalled()
     })
 

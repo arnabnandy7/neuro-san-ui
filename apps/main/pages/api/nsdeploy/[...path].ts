@@ -16,7 +16,7 @@ limitations under the License.
 
 import {NextApiRequest, NextApiResponse} from "next"
 
-import {NSDEPLOY_BEARER_TOKEN_ENV_VAR} from "../../../Const"
+import {ENABLE_PUBLISHING_ENV_VAR, NSDEPLOY_BEARER_TOKEN_ENV_VAR} from "../../../Const"
 
 // Read the raw body so multipart uploads pass through unchanged
 export const config = {api: {bodyParser: false}}
@@ -47,15 +47,18 @@ const parseServerUrl = (server: string | string[] | undefined): URL | null => {
 /**
  * Forwards requests to the NS Deploy server, which doesn't allow requests from browsers (no CORS headers).
  * `/api/nsdeploy/<path>?server=<NS Deploy URL>&<query>` is sent to `<NS Deploy URL>/<path>?<query>` with the bearer
- * token added.
+ * token added. The route only exists while publishing is enabled.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (process.env[ENABLE_PUBLISHING_ENV_VAR] !== "true") {
+        res.status(404).json({detail: "Publishing is not enabled"})
+        return
+    }
+
+    // Startup refuses to run with publishing enabled and no token, so it's always set here.
     // WARNING: this sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can use
     // the app can have it sent to a server they control. Consider only forwarding to an allowed host.
     const token = process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
-    if (!token) {
-        throw new Error(`${NSDEPLOY_BEARER_TOKEN_ENV_VAR} is not set`)
-    }
 
     const {path, server, ...query} = req.query
 
