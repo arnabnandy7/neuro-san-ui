@@ -26,8 +26,7 @@ import {
     useState,
 } from "react"
 
-import {ByokInputs, ByokStorageTooltip, useByokKeyManager} from "./ByokInputs"
-import {ByokUnsavedChangesModal} from "./ByokUnsavedChangesModal"
+import {ByokInputs, ByokStorageTooltip, ByokUnsavedChangesModal, useByokKeyManager} from "./Byok"
 import {useCheckmarkFade} from "./FadingCheckmark"
 import {SettingsRow} from "./SettingsRow"
 import {getBrandingSuggestions, testConnection, TestConnectionResult} from "../../controller/agent/Agent"
@@ -177,6 +176,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     // BYOK state and unsaved changes lifecycle
     const {
         activeConfigs: apiKeyConfigs,
+        apiKeys,
         handleClose: handleSettingsClose,
         handleDiscard: handleDiscardUnsavedKeys,
         handleKeyResultChange,
@@ -504,6 +504,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
             </Box>
             <SettingsSubsection title="LLM Providers">
                 <ByokInputs
+                    apiKeys={apiKeys}
                     configs={apiKeyConfigs}
                     id={id}
                     keyFailures={keyFailures}
