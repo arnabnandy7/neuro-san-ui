@@ -774,6 +774,12 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     const getTitle = () => {
         if (!networkDisplayName) return null
 
+        const isPublishingSetUp = enablePublishing && Boolean(nsDeployServerUrl)
+        const isViewingNetwork = !isAgentNetworkDesignerMode && !isEditingNetwork
+        const hoconToPublish = currentTempNetwork?.networkHocon
+        const showPublishButton =
+            isPublishingSetUp && isViewingNetwork && currentTempNetwork?.agentNetworkName && hoconToPublish
+
         return (
             <Box
                 id={`${id}-network-title-bar`}
@@ -833,21 +839,17 @@ export const AgentFlow: FC<AgentFlowProps> = ({
                         Edit
                     </Button>
                 )}
-                {enablePublishing &&
-                    nsDeployServerUrl &&
-                    currentTempNetwork?.agentNetworkName &&
-                    currentTempNetwork.networkHocon &&
-                    !isAgentNetworkDesignerMode &&
-                    !isEditingNetwork && (
-                        <Box sx={{pointerEvents: "auto"}}>
-                            <PublishButton
-                                displayName={networkDisplayName}
-                                hocon={currentTempNetwork.networkHocon}
-                                id={`${id}-publish-button`}
-                                networkName={currentTempNetwork.agentNetworkName}
-                            />
-                        </Box>
-                    )}
+                {showPublishButton && (
+                    <Box sx={{pointerEvents: "auto"}}>
+                        <PublishButton
+                            displayName={networkDisplayName}
+                            hocon={hoconToPublish}
+                            id={`${id}-publish-button`}
+                            networkId={currentTempNetwork.agentInfo.agent_name}
+                            networkName={currentTempNetwork.agentNetworkName}
+                        />
+                    </Box>
+                )}
             </Box>
         )
     }

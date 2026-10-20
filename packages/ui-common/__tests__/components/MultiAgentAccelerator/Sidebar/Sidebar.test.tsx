@@ -445,18 +445,19 @@ describe("SideBar", () => {
         )
     })
 
-    it("Should show Live next to a published temporary network", async () => {
-        usePublishStore.setState({
-            networks: {
-                [TEMPORARY_NETWORK_NAME]: {
-                    deploymentId: "dep-123",
-                    publishedAt: Date.now(),
-                    serverUrl: "https://nsdeploy.test",
-                    status: PublishStatus.Live,
-                    url: "http://live.test",
-                },
+    it.each([
+        {
+            publishState: {
+                deploymentId: "dep-123",
+                serverUrl: "https://nsdeploy.test",
+                status: PublishStatus.Live,
+                url: "http://live.test",
             },
-        })
+            label: "Live",
+        },
+        {publishState: {status: PublishStatus.Publishing}, label: "Publishing"},
+    ] as const)("Should show $label next to the temporary network", async ({publishState, label}) => {
+        usePublishStore.setState({networks: {[TEMPORARY_NETWORK.agentInfo.agent_name]: publishState}})
 
         renderSidebarComponent({
             networks: [...LIST_NETWORKS_RESPONSE],
@@ -464,7 +465,7 @@ describe("SideBar", () => {
             newlyAddedTemporaryNetworks: new Set([TEMPORARY_NETWORK.agentInfo.agent_name]),
         })
 
-        await screen.findByText("Live")
+        await screen.findByText(label)
     })
 
     it("Should handle expired temporary networks correctly", async () => {

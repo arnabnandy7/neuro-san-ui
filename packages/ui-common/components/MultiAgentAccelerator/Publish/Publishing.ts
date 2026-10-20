@@ -20,7 +20,7 @@ limitations under the License.
  */
 
 import {createDeployment, deleteDeployment, findReadyDeployment} from "../../../controller/nsDeploy/NsDeploy"
-import {LiveNetwork, PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 /** Where networks are published, from Settings */
@@ -29,28 +29,35 @@ export interface PublishTarget {
     readonly orgName: string
 }
 
+/** The network being published */
+export interface PublishNetwork {
+    /** The network's id in the app, which the publish store is keyed by */
+    readonly id: string
+    /** The agent network name, which it's published under */
+    readonly name: string
+}
+
 /**
  * Asks the server whether the network is already live, for example after a reload, and remembers it if so. Does
  * nothing if we already know the network's publish state.
  */
-export const checkIfPublished = async (networkName: string, {serverUrl, orgName}: PublishTarget): Promise<void> => {
-    if (usePublishStore.getState().networks[networkName]) return
+export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgName}: PublishTarget): Promise<void> => {
+    if (usePublishStore.getState().networks[network.id]) return
 
     try {
-        const ready = await findReadyDeployment(serverUrl, orgName, networkName)
+        const ready = await findReadyDeployment(serverUrl, orgName, network.name)
 
         // Don't overwrite a publish the user started while we were asking
-        if (!ready || usePublishStore.getState().networks[networkName]) return
+        if (!ready || usePublishStore.getState().networks[network.id]) return
 
-        usePublishStore.getState().setPublishState(networkName, {
+        usePublishStore.getState().setPublishState(network.id, {
             status: PublishStatus.Live,
             serverUrl,
             deploymentId: ready.id,
             url: ready.url,
-            publishedAt: ready.readyAt,
         })
     } catch (e) {
-        console.warn(`Unable to check whether "${networkName}" is published:`, e)
+        console.warn(`Unable to check whether "${network.name}" is published:`, e)
     }
 }
 
@@ -59,26 +66,20 @@ export const checkIfPublished = async (networkName: string, {serverUrl, orgName}
  * @returns The live URL, or null if publishing failed, in which case the user has been told why
  */
 export const publish = async (
-    networkName: string,
+    network: PublishNetwork,
     hocon: string,
     {serverUrl, orgName}: PublishTarget
 ): Promise<string | null> => {
     const {clearPublishState, setPublishState} = usePublishStore.getState()
-    setPublishState(networkName, {status: PublishStatus.Publishing})
+    setPublishState(network.id, {status: PublishStatus.Publishing})
 
     try {
-        const ready = await createDeployment({serverUrl, orgName, deploymentName: networkName, hocon})
-        setPublishState(networkName, {
-            status: PublishStatus.Live,
-            serverUrl,
-            deploymentId: ready.id,
-            url: ready.url,
-            publishedAt: ready.readyAt,
-        })
+        const ready = await createDeployment({serverUrl, orgName, deploymentName: network.name, hocon})
+        setPublishState(network.id, {status: PublishStatus.Live, serverUrl, deploymentId: ready.id, url: ready.url})
         return ready.url
     } catch (e) {
-        clearPublishState(networkName)
-        sendNotification(NotificationType.error, `Failed to publish "${networkName}".`, String(e))
+        clearPublishState(network.id)
+        sendNotification(NotificationType.error, `Failed to publish "${network.name}".`, String(e))
         return null
     }
 }
@@ -86,11 +87,11 @@ export const publish = async (
 /**
  * Takes a live network offline, on the server it was published to.
  */
-export const unpublish = async (networkName: string, liveNetwork: LiveNetwork): Promise<void> => {
+export const unpublish = async (network: PublishNetwork, published: Published): Promise<void> => {
     try {
-        await deleteDeployment(liveNetwork.serverUrl, liveNetwork.deploymentId)
-        usePublishStore.getState().clearPublishState(networkName)
+        await deleteDeployment(published.serverUrl, published.deploymentId)
+        usePublishStore.getState().clearPublishState(network.id)
     } catch (e) {
-        sendNotification(NotificationType.error, `Failed to unpublish "${networkName}".`, String(e))
+        sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))
     }
 }

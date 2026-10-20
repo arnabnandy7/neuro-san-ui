@@ -33,6 +33,8 @@ limitations under the License.
  * The server also has `GET /deployments/{id}/logs?tail=150` (build log), which we don't use yet.
  */
 
+import httpStatus from "http-status"
+
 import {testConnection, TestConnectionResult} from "../agent/Agent"
 
 //#region Types
@@ -40,8 +42,6 @@ import {testConnection, TestConnectionResult} from "../agent/Agent"
 export interface ReadyDeployment {
     readonly id: string
     readonly url: string
-    /** When it became ready, in milliseconds since epoch */
-    readonly readyAt: number
 }
 
 interface CreateDeploymentRequest {
@@ -60,10 +60,6 @@ interface Deployment {
     /** Set once status is ready */
     readonly url?: string | null
     readonly error?: string | null
-    /** ISO date */
-    readonly created_at: string
-    /** ISO date, set once status is ready */
-    readonly ready_at?: string | null
 }
 
 //#endregion Types
@@ -72,9 +68,6 @@ interface Deployment {
 
 // How long each /wait request holds open waiting for the build to finish
 const WAIT_TIMEOUT_SECONDS = 60
-
-// /wait answers 504 when the build is still going, which means ask again
-const STILL_BUILDING_STATUS = 504
 
 //#endregion Constants
 
@@ -99,13 +92,6 @@ const throwIfNotOk = async (response: Response, action: string): Promise<void> =
     throw new Error(`${action} failed (${response.status}): ${reason}`)
 }
 
-const toReadyDeployment = (deployment: Deployment & {url: string}): ReadyDeployment => {
-    const readyAt = Date.parse(deployment.ready_at ?? deployment.created_at)
-
-    // An unreadable date would break "Published ... ago", so treat it as just now
-    return {id: deployment.id, url: deployment.url, readyAt: Number.isNaN(readyAt) ? Date.now() : readyAt}
-}
-
 /**
  * Checks that an NS Deploy server is up.
  */
@@ -128,7 +114,7 @@ export const findReadyDeployment = async (
         (deployment) =>
             deployment.name === deploymentName && deployment.org_name === orgName && deployment.status === "ready"
     )
-    return ready?.url ? toReadyDeployment({...ready, url: ready.url}) : null
+    return ready?.url ? {id: ready.id, url: ready.url} : null
 }
 
 /**
@@ -153,7 +139,8 @@ export const createDeployment = async ({
         const waitResponse = await fetch(
             proxyUrl(serverUrl, `deployments/${deployment.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
         )
-        if (waitResponse.status !== STILL_BUILDING_STATUS) {
+        // A timeout means it's still building, so ask again
+        if (waitResponse.status !== httpStatus.GATEWAY_TIMEOUT) {
             await throwIfNotOk(waitResponse, "Waiting for the deployment")
             deployment = await waitResponse.json()
         }
@@ -163,7 +150,7 @@ export const createDeployment = async ({
         throw new Error(deployment.error || `The deployment ended as ${deployment.status}`)
     }
 
-    return toReadyDeployment({...deployment, url: deployment.url})
+    return {id: deployment.id, url: deployment.url}
 }
 
 /**

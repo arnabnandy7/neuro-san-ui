@@ -22,31 +22,14 @@ import Typography from "@mui/material/Typography"
 import {FC} from "react"
 
 import {LiveUrlField} from "./LiveUrlField"
-import {StatusDot} from "./PublishStatusBadge"
-import {LiveNetwork, PublishState, PublishStatus} from "../../../state/Publishing"
-
-const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat(undefined, {numeric: "auto"})
-
-/**
- * Formats how long ago a network was published, e.g. "just now" or "5 minutes ago".
- * @param publishedAt Milliseconds since epoch
- */
-const formatPublishedAgo = (publishedAt: number): string => {
-    const minutes = Math.floor((Date.now() - publishedAt) / 60_000)
-    if (minutes < 1) return "just now"
-    if (minutes < 60) return RELATIVE_TIME_FORMAT.format(-minutes, "minute")
-
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return RELATIVE_TIME_FORMAT.format(-hours, "hour")
-
-    return RELATIVE_TIME_FORMAT.format(-Math.floor(hours / 24), "day")
-}
+import {Published, PublishState, PublishStatus} from "../../../state/Publishing"
+import {StatusLight} from "../../Common/StatusLight"
 
 interface PublishPanelProps {
     readonly publishState: PublishState
     readonly id: string
     readonly isUnpublishing: boolean
-    readonly onUnpublish: (liveNetwork: LiveNetwork) => void
+    readonly onUnpublish: (published: Published) => void
 }
 
 /**
@@ -60,16 +43,10 @@ export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpub
         {publishState.status === PublishStatus.Live ? (
             <>
                 <Box sx={{alignItems: "center", display: "flex", gap: 1}}>
-                    <StatusDot publishStatus={publishState.status} />
+                    <StatusLight statusValue="green" />
                     <Typography sx={{fontWeight: 600}}>Live</Typography>
                 </Box>
                 <LiveUrlField url={publishState.url} />
-                <Typography
-                    color="text.secondary"
-                    variant="body2"
-                >
-                    Published {formatPublishedAgo(publishState.publishedAt)}
-                </Typography>
                 <Divider />
                 <Button
                     disabled={isUnpublishing}

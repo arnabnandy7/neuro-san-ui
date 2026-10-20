@@ -24,9 +24,9 @@ import Popover from "@mui/material/Popover"
 import Tooltip from "@mui/material/Tooltip"
 import {FC, ReactNode, useEffect, useState} from "react"
 
-import {checkIfPublished, publish, PublishTarget, unpublish} from "./Publishing"
+import {checkIfPublished, publish, PublishNetwork, PublishTarget, unpublish} from "./Publishing"
 import {PublishPanel} from "./PublishPanel"
-import {LiveNetwork, PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {useSettingsStore} from "../../../state/Settings"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
 import {NotificationType, sendNotification} from "../../Common/notification"
@@ -44,6 +44,9 @@ interface PublishButtonProps {
     /** The network's HOCON, the same file Download gives */
     readonly hocon: string
     readonly id: string
+    /** The network's id in the app */
+    readonly networkId: string
+    /** The agent network name, which it's published under */
     readonly networkName: string
 }
 
@@ -70,10 +73,10 @@ const openInNewTab = (url: string): boolean => {
 
 /**
  * Split button for publishing a network: "Publish", then "Publishing..." while it goes live, then "View live". The
- * dropdown opens a panel with the progress, live URL and technical details.
+ * dropdown opens a panel with the progress, or the live URL and Unpublish.
  */
-export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkName}) => {
-    const publishState = usePublishStore((state) => state.networks[networkName])
+export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkId, networkName}) => {
+    const publishState = usePublishStore((state) => state.networks[networkId])
     const serverUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
     const orgName = useSettingsStore((state) => state.settings.nsDeploy.orgName)
     const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
@@ -83,19 +86,21 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
     const [isPanelOpen, setIsPanelOpen] = useState(false)
     const [isUnpublishing, setIsUnpublishing] = useState(false)
     // The live network waiting on the user to confirm unpublishing it
-    const [networkToUnpublish, setNetworkToUnpublish] = useState<LiveNetwork | null>(null)
+    const [networkToUnpublish, setNetworkToUnpublish] = useState<Published | null>(null)
 
     // We only remember published networks in memory, so ask the server whether this one is live, for example after a
     // reload
     useEffect(() => {
         if (serverUrl && orgName) {
-            void checkIfPublished(networkName, {serverUrl, orgName})
+            void checkIfPublished({id: networkId, name: networkName}, {serverUrl, orgName})
         }
-    }, [networkName, orgName, serverUrl])
+    }, [networkId, networkName, orgName, serverUrl])
+
+    const network: PublishNetwork = {id: networkId, name: networkName}
 
     const handlePublish = async (publishTarget: PublishTarget) => {
         setIsPanelOpen(true)
-        const url = await publish(networkName, hocon, publishTarget)
+        const url = await publish(network, hocon, publishTarget)
         setIsPanelOpen(false)
 
         if (url) {
@@ -107,9 +112,9 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
         }
     }
 
-    const handleUnpublish = async (liveNetwork: LiveNetwork) => {
+    const handleUnpublish = async (published: Published) => {
         setIsUnpublishing(true)
-        await unpublish(networkName, liveNetwork)
+        await unpublish(network, published)
         setIsUnpublishing(false)
         setIsPanelOpen(false)
     }

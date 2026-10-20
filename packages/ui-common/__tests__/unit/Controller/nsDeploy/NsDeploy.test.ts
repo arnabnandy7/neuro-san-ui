@@ -12,7 +12,6 @@ const ORG_NAME = "cailville"
 const HOCON = "{ tools: [] }"
 const DEPLOYMENT_ID = "dep-123"
 const LIVE_URL = "https://nsdeploy.test/sites/cailville_bakery"
-const READY_AT = "2026-10-19T12:00:00Z"
 
 // Covers each NS Deploy endpoint the client calls. The comment on each test names the endpoints it exercises.
 describe("NsDeploy", () => {
@@ -49,9 +48,7 @@ describe("NsDeploy", () => {
 
     // POST /deployments
     it("should upload the HOCON with its name and the org name", async () => {
-        fetchMock.mockResolvedValue(
-            Response.json({id: DEPLOYMENT_ID, status: "ready", url: LIVE_URL, created_at: READY_AT}, {status: 202})
-        )
+        fetchMock.mockResolvedValue(Response.json({id: DEPLOYMENT_ID, status: "ready", url: LIVE_URL}, {status: 202}))
 
         await create()
 
@@ -71,27 +68,13 @@ describe("NsDeploy", () => {
         fetchMock
             .mockResolvedValueOnce(Response.json({id: DEPLOYMENT_ID, status: "queued"}, {status: 202}))
             .mockResolvedValueOnce(new Response(null, {status: 504}))
-            .mockResolvedValueOnce(
-                Response.json({id: DEPLOYMENT_ID, status: "ready", url: LIVE_URL, created_at: "x", ready_at: READY_AT})
-            )
+            .mockResolvedValueOnce(Response.json({id: DEPLOYMENT_ID, status: "ready", url: LIVE_URL}))
 
         const ready = await create()
 
-        expect(ready).toEqual({id: DEPLOYMENT_ID, url: LIVE_URL, readyAt: Date.parse(READY_AT)})
+        expect(ready).toEqual({id: DEPLOYMENT_ID, url: LIVE_URL})
         expect(fetchMock).toHaveBeenCalledTimes(3)
         expect(fetchMock.mock.calls[1][0]).toContain(`/api/nsdeploy/deployments/${DEPLOYMENT_ID}/wait?`)
-    })
-
-    // POST /deployments
-    it("should treat the deployment as ready just now when the server's date can't be read", async () => {
-        vi.spyOn(Date, "now").mockReturnValue(1234)
-        fetchMock.mockResolvedValue(
-            Response.json({id: DEPLOYMENT_ID, status: "ready", url: LIVE_URL, created_at: "not a date"}, {status: 202})
-        )
-
-        const ready = await create()
-
-        expect(ready.readyAt).toBe(1234)
     })
 
     // POST /deployments, then GET /deployments/{id}/wait ends as failed
@@ -135,7 +118,6 @@ describe("NsDeploy", () => {
 
     // GET /deployments
     it("should find the ready deployment with this name in our org", async () => {
-        const readyAt = READY_AT
         fetchMock.mockResolvedValue(
             Response.json({
                 capacity: {},
@@ -146,17 +128,14 @@ describe("NsDeploy", () => {
                         org_name: "someone-else",
                         status: "ready",
                         url: "x",
-                        created_at: readyAt,
                     },
-                    {id: "stopped", name: NETWORK_NAME, org_name: ORG_NAME, status: "stopped", created_at: readyAt},
+                    {id: "stopped", name: NETWORK_NAME, org_name: ORG_NAME, status: "stopped"},
                     {
                         id: DEPLOYMENT_ID,
                         name: NETWORK_NAME,
                         org_name: ORG_NAME,
                         status: "ready",
                         url: LIVE_URL,
-                        created_at: readyAt,
-                        ready_at: readyAt,
                     },
                 ],
             })
@@ -165,7 +144,7 @@ describe("NsDeploy", () => {
         const ready = await findReadyDeployment(SERVER_URL, ORG_NAME, NETWORK_NAME)
 
         expect(fetchMock.mock.calls[0][0]).toBe(`/api/nsdeploy/deployments?server=${encodeURIComponent(SERVER_URL)}`)
-        expect(ready).toEqual({id: DEPLOYMENT_ID, url: LIVE_URL, readyAt: Date.parse(readyAt)})
+        expect(ready).toEqual({id: DEPLOYMENT_ID, url: LIVE_URL})
     })
 
     // GET /deployments
@@ -173,9 +152,7 @@ describe("NsDeploy", () => {
         fetchMock.mockResolvedValue(
             Response.json({
                 capacity: {},
-                deployments: [
-                    {id: "stopped", name: NETWORK_NAME, org_name: ORG_NAME, status: "stopped", created_at: "x"},
-                ],
+                deployments: [{id: "stopped", name: NETWORK_NAME, org_name: ORG_NAME, status: "stopped"}],
             })
         )
 

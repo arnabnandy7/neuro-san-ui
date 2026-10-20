@@ -25,7 +25,6 @@ import InputAdornment from "@mui/material/InputAdornment"
 import MenuItem from "@mui/material/MenuItem"
 import Select from "@mui/material/Select"
 import TextField from "@mui/material/TextField"
-import Typography from "@mui/material/Typography"
 import {FC, ReactNode, useState} from "react"
 
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
@@ -156,13 +155,6 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
             }
             title="Publishing"
         >
-            <Typography
-                color="text.secondary"
-                variant="body2"
-            >
-                Adds a <strong>Publish</strong> button to every agent network. MAUI sends the network&apos;s HOCON (the
-                same file as Download) to this server.
-            </Typography>
             <FieldGrid>
                 <FieldRow
                     action={
@@ -250,15 +242,6 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                             slotProps={{htmlInput: {"aria-label": ORG_NAME_LABEL}}}
                             value={orgNameInput}
                         />
-                    }
-                    helper={
-                        <Typography
-                            color="text.secondary"
-                            sx={{letterSpacing: "normal"}}
-                            variant="caption"
-                        >
-                            Sent as org_name with every publish. Published networks are grouped under it.
-                        </Typography>
                     }
                     label={ORG_NAME_LABEL}
                     required={true}

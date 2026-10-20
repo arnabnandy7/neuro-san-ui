@@ -7,7 +7,6 @@ import {PublishPanel} from "../../../../components/MultiAgentAccelerator/Publish
 import {PublishState, PublishStatus} from "../../../../state/Publishing"
 
 const LIVE_URL = "http://live.test/cailville_bakery"
-const MINUTE_MS = 60_000
 
 const renderPanel = (publishState: PublishState) =>
     render(
@@ -19,9 +18,8 @@ const renderPanel = (publishState: PublishState) =>
         />
     )
 
-const makeLiveNetwork = (publishedAt = Date.now()): PublishState => ({
+const makeLiveNetwork = (): PublishState => ({
     deploymentId: "dep-123",
-    publishedAt,
     serverUrl: "https://nsdeploy.test",
     status: PublishStatus.Live,
     url: LIVE_URL,
@@ -29,16 +27,6 @@ const makeLiveNetwork = (publishedAt = Date.now()): PublishState => ({
 
 describe("PublishPanel", () => {
     withStrictMocks()
-
-    it.each([
-        {ageMs: 5 * MINUTE_MS, expected: "Published 5 minutes ago"},
-        {ageMs: 3 * 60 * MINUTE_MS, expected: "Published 3 hours ago"},
-        {ageMs: 2 * 24 * 60 * MINUTE_MS, expected: "Published 2 days ago"},
-    ])("should say $expected", ({ageMs, expected}) => {
-        renderPanel(makeLiveNetwork(Date.now() - ageMs))
-
-        screen.getByText(expected)
-    })
 
     it("should copy the live URL, say Copied, then go back to offering to copy", async () => {
         const user = userEvent.setup()

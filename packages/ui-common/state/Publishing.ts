@@ -21,39 +21,37 @@ export enum PublishStatus {
     Live = "Live",
 }
 
-interface PublishingNetwork {
+interface Publishing {
     readonly status: PublishStatus.Publishing
 }
 
-export interface LiveNetwork {
+export interface Published {
     readonly status: PublishStatus.Live
     /** The NS Deploy server it's published on, so it's unpublished from the same one */
     readonly serverUrl: string
     /** The server's id for it, needed to unpublish */
     readonly deploymentId: string
     readonly url: string
-    /** Milliseconds since epoch */
-    readonly publishedAt: number
 }
 
-export type PublishState = PublishingNetwork | LiveNetwork
+export type PublishState = Publishing | Published
 
 /**
- * Zustand state store for networks that are publishing or live, keyed by agent network name. Kept in memory only.
+ * Zustand state store for networks that are publishing or live, keyed by network id. Kept in memory only.
  */
 interface PublishStore {
     readonly networks: Readonly<Record<string, PublishState>>
-    readonly setPublishState: (networkName: string, publishState: PublishState) => void
-    readonly clearPublishState: (networkName: string) => void
+    readonly setPublishState: (networkId: string, publishState: PublishState) => void
+    readonly clearPublishState: (networkId: string) => void
 }
 
 export const usePublishStore = create<PublishStore>()((set) => ({
     networks: {},
-    setPublishState: (networkName, publishState) =>
-        set(({networks}) => ({networks: {...networks, [networkName]: publishState}})),
-    clearPublishState: (networkName) =>
+    setPublishState: (networkId, publishState) =>
+        set(({networks}) => ({networks: {...networks, [networkId]: publishState}})),
+    clearPublishState: (networkId) =>
         set(({networks}) => {
-            const {[networkName]: _removed, ...rest} = networks
+            const {[networkId]: _removed, ...rest} = networks
             return {networks: rest}
         }),
 }))

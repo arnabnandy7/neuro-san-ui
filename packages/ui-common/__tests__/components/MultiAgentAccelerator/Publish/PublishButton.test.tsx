@@ -27,6 +27,7 @@ const DEPLOYMENT_ID = "dep-123"
 const DISPLAY_NAME = "Cailville Bakery"
 const HOCON = "{ tools: [] }"
 const LIVE_URL = "http://live.test/cailville_bakery"
+const NETWORK_ID = "cailville_bakery-1f2e3d4c"
 const NETWORK_NAME = "cailville_bakery"
 const ORG_NAME = "cailville"
 const SERVER_ERROR = "NS Deploy server unavailable"
@@ -49,7 +50,7 @@ describe("PublishButton", () => {
     let user: UserEvent
     let openSpy: MockInstance<typeof window.open>
 
-    const makeReadyDeployment = (readyAt = Date.now()): ReadyDeployment => ({id: DEPLOYMENT_ID, url: LIVE_URL, readyAt})
+    const makeReadyDeployment = (): ReadyDeployment => ({id: DEPLOYMENT_ID, url: LIVE_URL})
 
     /**
      * Keeps the publish in flight until the returned `release()` is called, which then succeeds.
@@ -72,6 +73,7 @@ describe("PublishButton", () => {
                 displayName={DISPLAY_NAME}
                 hocon={HOCON}
                 id="publish-button"
+                networkId={NETWORK_ID}
                 networkName={NETWORK_NAME}
             />
         )
@@ -133,14 +135,13 @@ describe("PublishButton", () => {
     })
 
     it("should show View live for a network the server already has live, without publishing again", async () => {
-        vi.mocked(findReadyDeployment).mockResolvedValue(makeReadyDeployment(Date.now() - 3 * 60 * 60_000))
+        vi.mocked(findReadyDeployment).mockResolvedValue(makeReadyDeployment())
         renderPublishButton()
 
         await screen.findByRole("button", {name: "View live"})
         await openDetails()
 
         screen.getByText(LIVE_URL)
-        screen.getByText("Published 3 hours ago")
         expect(mockCreateDeployment).not.toHaveBeenCalled()
     })
 
@@ -263,14 +264,13 @@ describe("PublishButton", () => {
         expect(openSpy).toHaveBeenCalledWith(LIVE_URL, "_blank")
     })
 
-    it("should show the live URL and when it was published in the details", async () => {
+    it("should show the live URL in the details", async () => {
         renderPublishButton()
         await publishAndWaitUntilLive()
 
         await openDetails()
 
         screen.getByText(LIVE_URL)
-        screen.getByText("Published just now")
     })
 
     it("should reopen the progress panel when Publishing... is clicked", async () => {
