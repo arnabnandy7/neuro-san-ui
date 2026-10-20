@@ -32,7 +32,7 @@ import {
 } from "../../controller/llm/Providers"
 import {API_KEYS_TTL_MS, getApiKey, LLMProvider, useSettingsStore} from "../../state/Settings"
 
-export interface LLMProviderInputConfig {
+interface LLMProviderInputConfig {
     /** Fade-in checkmark animation state for the key validation indicator. */
     readonly checkmark: ReturnType<typeof useCheckmarkFade>
     /** Suffix appended to the base element ID to uniquely identify this provider's input. */
