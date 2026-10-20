@@ -37,14 +37,6 @@ import {testConnection, TestConnectionResult} from "../agent/Agent"
 
 //#region Types
 
-/** One request we made to the server, shown to the user as a technical detail */
-export interface RequestLogEntry {
-    /** Milliseconds since epoch */
-    readonly timestamp: number
-    readonly message: string
-    readonly detail?: string
-}
-
 export interface ReadyDeployment {
     readonly id: string
     readonly url: string
@@ -57,7 +49,6 @@ interface CreateDeploymentRequest {
     readonly orgName: string
     readonly deploymentName: string
     readonly hocon: string
-    readonly onRequest: (entry: RequestLogEntry) => void
 }
 
 /** The subset of the server's DeploymentView that we use */
@@ -148,28 +139,21 @@ export const createDeployment = async ({
     orgName,
     deploymentName,
     hocon,
-    onRequest,
 }: CreateDeploymentRequest): Promise<ReadyDeployment> => {
-    const log = (message: string, detail?: string) => onRequest({timestamp: Date.now(), message, detail})
-
     const form = new FormData()
     form.append("file", new Blob([hocon], {type: "text/plain"}), `${deploymentName}.hocon`)
     form.append("name", deploymentName)
     form.append("org_name", orgName)
 
-    log(`POST ${serverUrl}/deployments`, `${deploymentName}.hocon`)
     const createResponse = await fetch(proxyUrl(serverUrl, "deployments"), {method: "POST", body: form})
     await throwIfNotOk(createResponse, "Creating the deployment")
     let deployment: Deployment = await createResponse.json()
-    log(`${createResponse.status} ${deployment.status}`, `deployment_id=${deployment.id}`)
 
     while (deployment.status === "queued" || deployment.status === "building") {
         const waitResponse = await fetch(
             proxyUrl(serverUrl, `deployments/${deployment.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
         )
-        if (waitResponse.status === STILL_BUILDING_STATUS) {
-            log("Still building")
-        } else {
+        if (waitResponse.status !== STILL_BUILDING_STATUS) {
             await throwIfNotOk(waitResponse, "Waiting for the deployment")
             deployment = await waitResponse.json()
         }
@@ -179,7 +163,6 @@ export const createDeployment = async ({
         throw new Error(deployment.error || `The deployment ended as ${deployment.status}`)
     }
 
-    log(deployment.status, deployment.url)
     return toReadyDeployment({...deployment, url: deployment.url})
 }
 

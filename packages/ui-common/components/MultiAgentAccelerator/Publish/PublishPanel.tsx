@@ -22,7 +22,6 @@ import Typography from "@mui/material/Typography"
 import {FC} from "react"
 
 import {LiveUrlField} from "./LiveUrlField"
-import {PublishLog} from "./PublishLog"
 import {StatusDot} from "./PublishStatusBadge"
 import {LiveNetwork, PublishState, PublishStatus} from "../../../state/Publishing"
 
@@ -71,6 +70,15 @@ export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpub
                 >
                     Published {formatPublishedAgo(publishState.publishedAt)}
                 </Typography>
+                <Divider />
+                <Button
+                    disabled={isUnpublishing}
+                    onClick={() => onUnpublish(publishState)}
+                    size="small"
+                    sx={{alignSelf: "flex-start", color: "error.light", minWidth: 0, p: 0, textTransform: "none"}}
+                >
+                    {isUnpublishing ? "Unpublishing..." : "Unpublish"}
+                </Button>
             </>
         ) : (
             <>
@@ -86,21 +94,6 @@ export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpub
                     Usually takes a few seconds.
                 </Typography>
             </>
-        )}
-        <Divider />
-        <PublishLog
-            id={`${id}-log`}
-            log={publishState.log}
-        />
-        {publishState.status === PublishStatus.Live && (
-            <Button
-                disabled={isUnpublishing}
-                onClick={() => onUnpublish(publishState)}
-                size="small"
-                sx={{alignSelf: "flex-start", color: "error.light", minWidth: 0, p: 0, textTransform: "none"}}
-            >
-                {isUnpublishing ? "Unpublishing..." : "Unpublish"}
-            </Button>
         )}
     </Box>
 )

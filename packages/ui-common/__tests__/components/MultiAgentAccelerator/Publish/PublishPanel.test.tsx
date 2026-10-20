@@ -21,7 +21,6 @@ const renderPanel = (publishState: PublishState) =>
 
 const makeLiveNetwork = (publishedAt = Date.now()): PublishState => ({
     deploymentId: "dep-123",
-    log: [],
     publishedAt,
     serverUrl: "https://nsdeploy.test",
     status: PublishStatus.Live,
@@ -79,7 +78,7 @@ describe("PublishPanel", () => {
     })
 
     it("should not offer to unpublish while still publishing", () => {
-        renderPanel({log: [], status: PublishStatus.Publishing})
+        renderPanel({status: PublishStatus.Publishing})
 
         expect(screen.queryByRole("button", {name: "Unpublish"})).not.toBeInTheDocument()
     })

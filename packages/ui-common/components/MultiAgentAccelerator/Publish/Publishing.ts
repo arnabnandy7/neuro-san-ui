@@ -19,12 +19,7 @@ limitations under the License.
  * Publish button and sidebar badge show.
  */
 
-import {
-    createDeployment,
-    deleteDeployment,
-    findReadyDeployment,
-    RequestLogEntry,
-} from "../../../controller/nsDeploy/NsDeploy"
+import {createDeployment, deleteDeployment, findReadyDeployment} from "../../../controller/nsDeploy/NsDeploy"
 import {LiveNetwork, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
@@ -49,7 +44,6 @@ export const checkIfPublished = async (networkName: string, {serverUrl, orgName}
 
         usePublishStore.getState().setPublishState(networkName, {
             status: PublishStatus.Live,
-            log: [{timestamp: Date.now(), message: `GET ${serverUrl}/deployments`, detail: ready.url}],
             serverUrl,
             deploymentId: ready.id,
             url: ready.url,
@@ -70,23 +64,12 @@ export const publish = async (
     {serverUrl, orgName}: PublishTarget
 ): Promise<string | null> => {
     const {clearPublishState, setPublishState} = usePublishStore.getState()
-    let log: readonly RequestLogEntry[] = []
-    setPublishState(networkName, {status: PublishStatus.Publishing, log})
+    setPublishState(networkName, {status: PublishStatus.Publishing})
 
     try {
-        const ready = await createDeployment({
-            serverUrl,
-            orgName,
-            deploymentName: networkName,
-            hocon,
-            onRequest: (entry) => {
-                log = [...log, entry]
-                setPublishState(networkName, {status: PublishStatus.Publishing, log})
-            },
-        })
+        const ready = await createDeployment({serverUrl, orgName, deploymentName: networkName, hocon})
         setPublishState(networkName, {
             status: PublishStatus.Live,
-            log,
             serverUrl,
             deploymentId: ready.id,
             url: ready.url,

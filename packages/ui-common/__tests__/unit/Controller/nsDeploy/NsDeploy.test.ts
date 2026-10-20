@@ -26,7 +26,6 @@ describe("NsDeploy", () => {
             orgName: ORG_NAME,
             deploymentName: NETWORK_NAME,
             hocon: HOCON,
-            onRequest: vi.fn(),
         })
 
     beforeEach(() => {

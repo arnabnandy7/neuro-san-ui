@@ -31,7 +31,6 @@ const NETWORK_NAME = "cailville_bakery"
 const ORG_NAME = "cailville"
 const SERVER_ERROR = "NS Deploy server unavailable"
 const SERVER_URL = "https://nsdeploy.test"
-const UPLOAD_REQUEST = `POST ${SERVER_URL}/deployments`
 
 //#endregion Constants
 
@@ -120,10 +119,7 @@ describe("PublishButton", () => {
         useSettingsStore.getState().resetSettings()
         useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
 
-        mockCreateDeployment.mockImplementation(async ({onRequest}) => {
-            onRequest({timestamp: Date.now(), message: UPLOAD_REQUEST, detail: `${NETWORK_NAME}.hocon`})
-            return makeReadyDeployment()
-        })
+        mockCreateDeployment.mockResolvedValue(makeReadyDeployment())
         vi.mocked(deleteDeployment).mockResolvedValue()
         vi.mocked(findReadyDeployment).mockResolvedValue(null)
     })
@@ -275,17 +271,6 @@ describe("PublishButton", () => {
 
         screen.getByText(LIVE_URL)
         screen.getByText("Published just now")
-    })
-
-    it("should list each request to the server under technical details", async () => {
-        renderPublishButton()
-        await publishAndWaitUntilLive()
-        await openDetails()
-        const technicalDetailsButton = screen.getByRole("button", {name: "Technical details"})
-
-        await user.click(technicalDetailsButton)
-
-        expect(screen.getByText(new RegExp(UPLOAD_REQUEST, "u"))).toHaveTextContent(`${NETWORK_NAME}.hocon`)
     })
 
     it("should reopen the progress panel when Publishing... is clicked", async () => {

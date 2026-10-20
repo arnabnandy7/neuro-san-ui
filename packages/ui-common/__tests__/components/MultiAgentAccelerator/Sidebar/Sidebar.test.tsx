@@ -450,7 +450,6 @@ describe("SideBar", () => {
             networks: {
                 [TEMPORARY_NETWORK_NAME]: {
                     deploymentId: "dep-123",
-                    log: [],
                     publishedAt: Date.now(),
                     serverUrl: "https://nsdeploy.test",
                     status: PublishStatus.Live,

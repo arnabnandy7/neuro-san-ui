@@ -16,8 +16,6 @@ limitations under the License.
 
 import {create} from "zustand"
 
-import {RequestLogEntry} from "../controller/nsDeploy/NsDeploy"
-
 export enum PublishStatus {
     Publishing = "Publishing",
     Live = "Live",
@@ -25,12 +23,10 @@ export enum PublishStatus {
 
 interface PublishingNetwork {
     readonly status: PublishStatus.Publishing
-    readonly log: readonly RequestLogEntry[]
 }
 
 export interface LiveNetwork {
     readonly status: PublishStatus.Live
-    readonly log: readonly RequestLogEntry[]
     /** The NS Deploy server it's published on, so it's unpublished from the same one */
     readonly serverUrl: string
     /** The server's id for it, needed to unpublish */
