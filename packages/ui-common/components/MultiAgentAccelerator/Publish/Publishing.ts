@@ -23,6 +23,11 @@ import {createDeployment, deleteDeployment, findReadyDeployment} from "../../../
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
+export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
+    "Add an NS Deploy server and org name in Settings > Advanced to publish"
+export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
+export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
+
 /** Where networks are published, from Settings */
 export interface PublishTarget {
     readonly serverUrl: string
@@ -35,6 +40,20 @@ export interface PublishNetwork {
     readonly id: string
     /** The agent network name, which it's published under */
     readonly name: string
+}
+
+/**
+ * Opens a URL in a new tab, cut off from this page.
+ * @returns Whether the tab opened. False when the browser blocked it as a popup.
+ * @note Sets `opener` by hand because the "noopener" feature makes window.open always return null, which would hide
+ * whether the tab opened.
+ */
+export const openInNewTab = (url: string): boolean => {
+    const tab = window.open(url, "_blank")
+    if (!tab) return false
+
+    tab.opener = null
+    return true
 }
 
 /**
@@ -62,25 +81,26 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
 }
 
 /**
- * Publishes the network's HOCON, the same file Download gives, and waits for it to go live.
- * @returns The live URL, or null if publishing failed, in which case the user has been told why
+ * Publishes the network's HOCON, the same file Download gives, waits for it to go live, then opens it in a new tab.
+ * Tells the user how it went either way.
  */
 export const publish = async (
     network: PublishNetwork,
     hocon: string,
     {serverUrl, orgName}: PublishTarget
-): Promise<string | null> => {
+): Promise<void> => {
     const {clearPublishState, setPublishState} = usePublishStore.getState()
     setPublishState(network.id, {status: PublishStatus.Publishing})
 
     try {
         const ready = await createDeployment({serverUrl, orgName, deploymentName: network.name, hocon})
         setPublishState(network.id, {status: PublishStatus.Live, serverUrl, deploymentId: ready.id, url: ready.url})
-        return ready.url
+
+        const message = openInNewTab(ready.url) ? PUBLISHED_MESSAGE : PUBLISHED_TAB_BLOCKED_MESSAGE
+        sendNotification(NotificationType.success, message, "", {vertical: "bottom", horizontal: "center"})
     } catch (e) {
         clearPublishState(network.id)
         sendNotification(NotificationType.error, `Failed to publish "${network.name}".`, String(e))
-        return null
     }
 }
 

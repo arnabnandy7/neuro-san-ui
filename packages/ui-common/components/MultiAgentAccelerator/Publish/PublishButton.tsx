@@ -24,19 +24,22 @@ import Popover from "@mui/material/Popover"
 import Tooltip from "@mui/material/Tooltip"
 import {FC, ReactNode, useEffect, useState} from "react"
 
-import {checkIfPublished, publish, PublishNetwork, PublishTarget, unpublish} from "./Publishing"
+import {PublishConfirmation} from "./PublishConfirmation"
+import {
+    checkIfPublished,
+    openInNewTab,
+    publish,
+    PUBLISH_SETTINGS_REQUIRED_MESSAGE,
+    PublishNetwork,
+    PublishTarget,
+    unpublish,
+} from "./Publishing"
 import {PublishPanel} from "./PublishPanel"
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {useSettingsStore} from "../../../state/Settings"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
-import {NotificationType, sendNotification} from "../../Common/notification"
 
-export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
-export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 export const SHOW_DETAILS_LABEL = "Show publish details"
-export const PUBLIC_ACCESS_WARNING = "Anyone with the link can see and use it. There's no sign-in or access control."
-export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
-    "Add an NS Deploy server and org name in Settings > Advanced to publish"
 
 interface PublishButtonProps {
     /** The network's name as people read it, for the confirmation */
@@ -55,20 +58,6 @@ interface MainAction {
     readonly icon: ReactNode
     readonly handleClick: () => void
     readonly label: string
-}
-
-/**
- * Opens a URL in a new tab, cut off from this page.
- * @returns Whether the tab opened. False when the browser blocked it as a popup.
- * @note Sets `opener` by hand because the "noopener" feature makes window.open always return null, which would hide
- * whether the tab opened.
- */
-const openInNewTab = (url: string): boolean => {
-    const tab = window.open(url, "_blank")
-    if (!tab) return false
-
-    tab.opener = null
-    return true
 }
 
 /**
@@ -100,16 +89,8 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
 
     const handlePublish = async (publishTarget: PublishTarget) => {
         setIsPanelOpen(true)
-        const url = await publish(network, hocon, publishTarget)
+        await publish(network, hocon, publishTarget)
         setIsPanelOpen(false)
-
-        if (url) {
-            const message = openInNewTab(url) ? PUBLISHED_MESSAGE : PUBLISHED_TAB_BLOCKED_MESSAGE
-            sendNotification(NotificationType.success, message, "", {
-                vertical: "bottom",
-                horizontal: "center",
-            })
-        }
     }
 
     const handleUnpublish = async (published: Published) => {
@@ -211,19 +192,15 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
                 </Popover>
             )}
             {isPublishConfirmOpen && target && (
-                <ConfirmationModal
-                    content={
-                        `"${displayName}" will be published to ${target.serverUrl} ` +
-                        `under the org "${target.orgName}". ${PUBLIC_ACCESS_WARNING}`
-                    }
-                    handleCancel={() => setIsPublishConfirmOpen(false)}
-                    handleOk={() => {
+                <PublishConfirmation
+                    displayName={displayName}
+                    id={`${id}-confirm`}
+                    onCancel={() => setIsPublishConfirmOpen(false)}
+                    onConfirm={() => {
                         setIsPublishConfirmOpen(false)
                         void handlePublish(target)
                     }}
-                    id={`${id}-confirm`}
-                    okBtnLabel="Publish"
-                    title="Publish this network?"
+                    target={target}
                 />
             )}
             {networkToUnpublish && (

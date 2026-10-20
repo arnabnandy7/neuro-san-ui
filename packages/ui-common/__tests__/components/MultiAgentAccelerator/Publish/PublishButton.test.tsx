@@ -4,14 +4,13 @@ import {MockInstance} from "vitest"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {NotificationType, sendNotification} from "../../../../components/Common/notification"
+import {PublishButton, SHOW_DETAILS_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
+import {PUBLIC_ACCESS_WARNING} from "../../../../components/MultiAgentAccelerator/Publish/PublishConfirmation"
 import {
-    PUBLIC_ACCESS_WARNING,
     PUBLISH_SETTINGS_REQUIRED_MESSAGE,
-    PublishButton,
     PUBLISHED_MESSAGE,
     PUBLISHED_TAB_BLOCKED_MESSAGE,
-    SHOW_DETAILS_LABEL,
-} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
+} from "../../../../components/MultiAgentAccelerator/Publish/Publishing"
 import {
     createDeployment,
     deleteDeployment,

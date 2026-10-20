@@ -23,9 +23,12 @@ import {useTreeItem} from "@mui/x-tree-view/useTreeItem"
 import {FC, useRef} from "react"
 
 import {AgentNetworkTreeItemModel} from "./TreeBuilder"
+import {useEnvironmentStore} from "../../../state/Environment"
 import {PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {useSettingsStore} from "../../../state/Settings"
 import {downloadFile} from "../../../utils/File"
 import {StatusLight} from "../../Common/StatusLight"
+import {PublishIconButton} from "../Publish/PublishIconButton"
 
 //#region Constants
 
@@ -120,6 +123,10 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
     const isExpired = isChild && isTemporaryNetwork && isTemporaryNetworkExpired(expirationTime)
     const networkHocon = item?.temporaryNetworkHocon ?? null
     const publishStatus = usePublishStore((state) => state.networks[itemId]?.status)
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
+    const publishServerUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
+    const networkName = item?.temporaryNetworkName
+    const showPublishButton = enablePublishing && Boolean(publishServerUrl) && networkHocon && networkName
 
     const iconNameSuggestion = item.iconSuggestion
 
@@ -215,6 +222,16 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
                                         />
                                         {publishStatus}
                                     </Box>
+                                )}
+                                {showPublishButton && (
+                                    <PublishIconButton
+                                        disabled={isExpired}
+                                        displayName={item.displayName}
+                                        hocon={networkHocon}
+                                        id={`${itemId}-publish`}
+                                        networkId={itemId}
+                                        networkName={networkName}
+                                    />
                                 )}
                                 {networkHocon && (
                                     <Tooltip title={isExpired ? "Expired" : DOWNLOAD_NETWORK_DEFINITION_LABEL}>
