@@ -109,10 +109,7 @@ export interface UseByokKeyManagerReturn {
  * @param props.supportedProviders Optional filter for supported providers
  * @return State and callbacks for managing BYOK inputs and confirmation modal
  */
-export const useByokKeyManager = ({
-    onClose,
-    supportedProviders,
-}: UseByokKeyManagerProps = {}): UseByokKeyManagerReturn => {
+export const useByokKeyManager = ({onClose, supportedProviders}: UseByokKeyManagerProps): UseByokKeyManagerReturn => {
     const theme = useTheme()
     const openAIKeyCheckmark = useCheckmarkFade()
     const anthropicKeyCheckmark = useCheckmarkFade()
@@ -195,11 +192,7 @@ export const useByokKeyManager = ({
         () =>
             activeConfigs.filter(({vendor}) => {
                 const draft = draftKeys[vendor]
-                if (draft === undefined) {
-                    return false
-                }
-                const persisted = getApiKey(apiKeys, vendor) ?? ""
-                return draft !== persisted
+                return draft !== undefined && draft !== (getApiKey(apiKeys, vendor) ?? "")
             }),
         [activeConfigs, apiKeys, draftKeys]
     )
@@ -221,10 +214,7 @@ export const useByokKeyManager = ({
     const handleSave = useCallback(() => {
         const now = Date.now()
         getDirtyDrafts().forEach(({checkmark, vendor}) => {
-            const draft = draftKeys[vendor]
-            if (draft !== undefined) {
-                persistKey(vendor, draft, checkmark, now)
-            }
+            persistKey(vendor, draftKeys[vendor], checkmark, now)
         })
         setDraftKeys({})
         setShowUnsavedChangesModal(false)

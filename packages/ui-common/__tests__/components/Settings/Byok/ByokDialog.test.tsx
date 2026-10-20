@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {createTheme, ThemeProvider} from "@mui/material/styles"
 import {render, screen, within} from "@testing-library/react"
 import {userEvent, UserEvent} from "@testing-library/user-event"
 
@@ -240,5 +241,17 @@ describe("ByokDialog", () => {
 
         expect(screen.getByRole("alert")).toBeInTheDocument()
         expect(screen.getByText("Invalid API key")).toBeInTheDocument()
+    })
+
+    it("renders dark mode logo when theme mode is dark", () => {
+        const darkTheme = createTheme({palette: {mode: "dark"}})
+        render(
+            <ThemeProvider theme={darkTheme}>
+                <ByokDialog id="test-byok-dark-dialog" />
+            </ThemeProvider>
+        )
+
+        const apiKeyInput = screen.getByTestId("test-byok-dark-dialog-openai-input")
+        expect(within(apiKeyInput).getByRole("img")).toHaveAttribute("src", "/OpenAI-white.png")
     })
 })
