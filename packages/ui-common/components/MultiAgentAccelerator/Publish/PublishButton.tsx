@@ -34,6 +34,7 @@ import {NotificationType, sendNotification} from "../../Common/notification"
 export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
 export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 export const SHOW_DETAILS_LABEL = "Show publish details"
+export const PUBLIC_ACCESS_WARNING = "Anyone with the link can see and use it. There's no sign-in or access control."
 export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
     "Add an NS Deploy server and org name in Settings > Advanced to publish"
 
@@ -208,7 +209,7 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
                 <ConfirmationModal
                     content={
                         `"${displayName}" will be published to ${target.serverUrl} ` +
-                        `under the org "${target.orgName}". Anyone with the link will be able to use it.`
+                        `under the org "${target.orgName}". ${PUBLIC_ACCESS_WARNING}`
                     }
                     handleCancel={() => setIsPublishConfirmOpen(false)}
                     handleOk={() => {

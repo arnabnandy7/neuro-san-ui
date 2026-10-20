@@ -5,6 +5,7 @@ import {MockInstance} from "vitest"
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {NotificationType, sendNotification} from "../../../../components/Common/notification"
 import {
+    PUBLIC_ACCESS_WARNING,
     PUBLISH_SETTINGS_REQUIRED_MESSAGE,
     PublishButton,
     PUBLISHED_MESSAGE,
@@ -156,7 +157,7 @@ describe("PublishButton", () => {
         screen.getByRole("button", {name: "Publish"})
     })
 
-    it("should ask before publishing, naming the network, server and org", async () => {
+    it("should ask before publishing, naming the network, server and org, and warning it'll be public", async () => {
         renderPublishButton()
 
         await clickPublish()
@@ -164,6 +165,7 @@ describe("PublishButton", () => {
         const confirmation = await screen.findByRole("dialog")
         expect(confirmation).toHaveTextContent(`"${DISPLAY_NAME}" will be published to ${SERVER_URL}`)
         expect(confirmation).toHaveTextContent(`under the org "${ORG_NAME}"`)
+        expect(confirmation).toHaveTextContent(PUBLIC_ACCESS_WARNING)
         expect(mockCreateDeployment).not.toHaveBeenCalled()
     })
 
