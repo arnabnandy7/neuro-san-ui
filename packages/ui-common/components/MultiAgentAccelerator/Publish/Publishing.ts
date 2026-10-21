@@ -19,12 +19,11 @@ limitations under the License.
  * Publish button and sidebar badge show.
  */
 
-import {createDeployment, deleteDeployment, findReadyDeployment} from "../../../controller/nsDeploy/NsDeploy"
+import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../controller/publish/PublishServer"
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
-export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
-    "Add an NS Deploy server and org name in Settings > Advanced to publish"
+export const PUBLISH_SETTINGS_REQUIRED_MESSAGE = "Add a publish server and org name in Settings > Publishing to publish"
 export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
 export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 
@@ -64,7 +63,7 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
     if (usePublishStore.getState().networks[network.id]) return
 
     try {
-        const ready = await findReadyDeployment(serverUrl, orgName, network.name)
+        const ready = await findPublishedNetwork(serverUrl, orgName, network.name)
 
         // Don't overwrite a publish the user started while we were asking
         if (!ready || usePublishStore.getState().networks[network.id]) return
@@ -72,7 +71,7 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
         usePublishStore.getState().setPublishState(network.id, {
             status: PublishStatus.Live,
             serverUrl,
-            deploymentId: ready.id,
+            publishId: ready.id,
             url: ready.url,
         })
     } catch (e) {
@@ -93,8 +92,8 @@ export const publish = async (
     setPublishState(network.id, {status: PublishStatus.Publishing})
 
     try {
-        const ready = await createDeployment({serverUrl, orgName, deploymentName: network.name, hocon})
-        setPublishState(network.id, {status: PublishStatus.Live, serverUrl, deploymentId: ready.id, url: ready.url})
+        const ready = await publishNetwork({serverUrl, orgName, networkName: network.name, hocon})
+        setPublishState(network.id, {status: PublishStatus.Live, serverUrl, publishId: ready.id, url: ready.url})
 
         const message = openInNewTab(ready.url) ? PUBLISHED_MESSAGE : PUBLISHED_TAB_BLOCKED_MESSAGE
         sendNotification(NotificationType.success, message, "", {vertical: "bottom", horizontal: "center"})
@@ -109,7 +108,7 @@ export const publish = async (
  */
 export const unpublish = async (network: PublishNetwork, published: Published): Promise<void> => {
     try {
-        await deleteDeployment(published.serverUrl, published.deploymentId)
+        await unpublishNetwork(published.serverUrl, published.publishId)
         usePublishStore.getState().clearPublishState(network.id)
     } catch (e) {
         sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))

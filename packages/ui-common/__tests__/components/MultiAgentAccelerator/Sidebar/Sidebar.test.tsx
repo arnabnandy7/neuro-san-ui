@@ -49,7 +49,7 @@ import {
     SPARKLE_HIGHLIGHT_CLASS,
 } from "../../../../components/MultiAgentAccelerator/Sidebar/Sidebar"
 import {testConnection, TestConnectionResult} from "../../../../controller/agent/Agent"
-import {createDeployment, findReadyDeployment} from "../../../../controller/nsDeploy/NsDeploy"
+import {findPublishedNetwork, publishNetwork} from "../../../../controller/publish/PublishServer"
 import {NetworkIconSuggestions} from "../../../../controller/Types/NetworkIconSuggestions"
 import {AgentInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
@@ -85,7 +85,7 @@ vi.mock("@mui/x-tree-view/RichTreeView", async (importOriginal) => {
 })
 
 vi.mock("../../../../controller/agent/Agent")
-vi.mock("../../../../controller/nsDeploy/NsDeploy")
+vi.mock("../../../../controller/publish/PublishServer")
 vi.mock("../../../../components/Common/notification")
 vi.mock("../../../../utils/File", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../../../utils/File")>()
@@ -453,8 +453,8 @@ describe("SideBar", () => {
     it.each([
         {
             publishState: {
-                deploymentId: "dep-123",
-                serverUrl: "https://nsdeploy.test",
+                publishId: "dep-123",
+                serverUrl: "https://publish.test",
                 status: PublishStatus.Live,
                 url: "http://live.test",
             },
@@ -669,10 +669,10 @@ describe("SideBar", () => {
 
         beforeEach(() => {
             useEnvironmentStore.getState().setEnablePublishing(true)
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: SERVER_URL, orgName: "cailville"}})
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: "cailville"}})
             usePublishStore.setState({networks: {}})
-            vi.mocked(findReadyDeployment).mockResolvedValue(null)
-            vi.mocked(createDeployment).mockResolvedValue({id: "dep-123", url: LIVE_URL})
+            vi.mocked(findPublishedNetwork).mockResolvedValue(null)
+            vi.mocked(publishNetwork).mockResolvedValue({id: "dep-123", url: LIVE_URL})
             vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         })
 
@@ -686,8 +686,8 @@ describe("SideBar", () => {
             await user.click(confirmButton)
 
             await screen.findByRole("button", {name: "View live"})
-            expect(createDeployment).toHaveBeenCalledWith(
-                expect.objectContaining({deploymentName: TEMPORARY_NETWORK.agentNetworkName})
+            expect(publishNetwork).toHaveBeenCalledWith(
+                expect.objectContaining({networkName: TEMPORARY_NETWORK.agentNetworkName})
             )
             expect(setSelectedNetworkMock).not.toHaveBeenCalled()
         })
@@ -702,12 +702,12 @@ describe("SideBar", () => {
 
             await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
             screen.getByRole("button", {name: "Publish"})
-            expect(createDeployment).not.toHaveBeenCalled()
+            expect(publishNetwork).not.toHaveBeenCalled()
             expect(setSelectedNetworkMock).not.toHaveBeenCalled()
         })
 
         it("Should ask for an org name before publishing", async () => {
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: SERVER_URL, orgName: null}})
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: null}})
             renderWithTemporaryNetwork()
 
             const publishButton = await screen.findByRole("button", {name: PUBLISH_SETTINGS_REQUIRED_MESSAGE})
@@ -719,7 +719,7 @@ describe("SideBar", () => {
             usePublishStore.setState({
                 networks: {
                     [TEMPORARY_NETWORK.agentInfo.agent_name]: {
-                        deploymentId: "dep-123",
+                        publishId: "dep-123",
                         serverUrl: SERVER_URL,
                         status: PublishStatus.Live,
                         url: LIVE_URL,
@@ -736,7 +736,7 @@ describe("SideBar", () => {
         })
 
         it("Should not offer to publish until a publishing server is set", async () => {
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: null, orgName: null}})
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: null, orgName: null}})
             renderWithTemporaryNetwork()
 
             // First proves the temporary network, where the button would appear, is on screen

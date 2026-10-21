@@ -66,8 +66,8 @@ interface MainAction {
  */
 export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkId, networkName}) => {
     const publishState = usePublishStore((state) => state.networks[networkId])
-    const serverUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
-    const orgName = useSettingsStore((state) => state.settings.nsDeploy.orgName)
+    const serverUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const orgName = useSettingsStore((state) => state.settings.publish.orgName)
     const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
 
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)

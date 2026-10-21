@@ -15,20 +15,20 @@ limitations under the License.
 */
 
 /**
- * Client for an NS Deploy server, which runs a network's HOCON as a live website. We use it to publish networks.
- * Requests go through our `/api/nsdeploy` route because the server doesn't allow requests from browsers.
+ * Client for a publish server, which runs a network's HOCON as a live website. We use it to publish networks.
+ * Requests go through our `/api/publish` route because the server doesn't allow requests from browsers.
  *
- * Naming: this file uses the server's terms ("deployment"). The rest of the app calls the feature "publish".
+ * The server calls a published network a "deployment", so that word only shows up in its paths and JSON here.
  *
- * NS Deploy endpoints we call:
+ * Endpoints we call:
  * - `GET /health`: whether the server is up. No token needed. Used by checkHealth.
- * - `GET /deployments`: lists deployments. Used by findReadyDeployment.
- * - `POST /deployments`: uploads the HOCON as `file` along with `name` and `org_name`. Used by createDeployment.
+ * - `GET /deployments`: lists published networks. Used by findPublishedNetwork.
+ * - `POST /deployments`: uploads the HOCON as `file` along with `name` and `org_name`. Used by publishNetwork.
  * - `GET /deployments/{id}/wait?timeout=60`: waits for the build. 504 means it's still building, so ask again. Used by
- *   createDeployment.
- * - `DELETE /deployments/{id}`: stops a deployment. Used by deleteDeployment.
+ *   publishNetwork.
+ * - `DELETE /deployments/{id}`: takes a network offline. Used by unpublishNetwork.
  *
- * The server identifies a deployment by its name within an org, so uploading the same name again replaces it.
+ * The server identifies a network by its name within an org, so publishing the same name again replaces it.
  *
  * The server also has `GET /deployments/{id}/logs?tail=150` (build log), which we don't use yet.
  */
@@ -39,20 +39,20 @@ import {testConnection, TestConnectionResult} from "../agent/Agent"
 
 //#region Types
 
-export interface ReadyDeployment {
+export interface PublishedNetwork {
     readonly id: string
     readonly url: string
 }
 
-interface CreateDeploymentRequest {
+interface PublishNetworkRequest {
     readonly serverUrl: string
     readonly orgName: string
-    readonly deploymentName: string
+    readonly networkName: string
     readonly hocon: string
 }
 
-/** The subset of the server's DeploymentView that we use */
-interface Deployment {
+/** The subset of the server's view of a published network (its DeploymentView) that we use */
+interface ServerNetwork {
     readonly id: string
     readonly name: string
     readonly org_name: string
@@ -72,7 +72,7 @@ const WAIT_TIMEOUT_SECONDS = 60
 //#endregion Constants
 
 const proxyUrl = (serverUrl: string, path: string, query: Record<string, string> = {}): string =>
-    `/api/nsdeploy/${path}?${new URLSearchParams({server: serverUrl, ...query})}`
+    `/api/publish/${path}?${new URLSearchParams({server: serverUrl, ...query})}`
 
 /**
  * Throws with the server's explanation if the response isn't OK.
@@ -93,70 +93,69 @@ const throwIfNotOk = async (response: Response, action: string): Promise<void> =
 }
 
 /**
- * Checks that an NS Deploy server is up.
+ * Checks that a publish server is up.
  */
 export const checkHealth = (serverUrl: string): Promise<TestConnectionResult> =>
     testConnection(proxyUrl(serverUrl, "health"))
 
 /**
- * Finds the ready deployment with this name in the org, if there is one.
+ * Finds the live network with this name in the org, if there is one.
  */
-export const findReadyDeployment = async (
+export const findPublishedNetwork = async (
     serverUrl: string,
     orgName: string,
-    deploymentName: string
-): Promise<ReadyDeployment | null> => {
+    networkName: string
+): Promise<PublishedNetwork | null> => {
     const response = await fetch(proxyUrl(serverUrl, "deployments"))
-    await throwIfNotOk(response, "Listing deployments")
-    const {deployments}: {deployments: Deployment[]} = await response.json()
+    await throwIfNotOk(response, "Listing published networks")
+    const {deployments: networks}: {deployments: ServerNetwork[]} = await response.json()
 
-    const ready = deployments.find(
-        (deployment) =>
-            deployment.name === deploymentName && deployment.org_name === orgName && deployment.status === "ready"
+    const live = networks.find(
+        (network) => network.name === networkName && network.org_name === orgName && network.status === "ready"
     )
-    return ready?.url ? {id: ready.id, url: ready.url} : null
+    return live?.url ? {id: live.id, url: live.url} : null
 }
 
 /**
- * Uploads the HOCON as a deployment and waits until it's ready.
+ * Uploads the HOCON and waits until the network is live.
  */
-export const createDeployment = async ({
+export const publishNetwork = async ({
     serverUrl,
     orgName,
-    deploymentName,
+    networkName,
     hocon,
-}: CreateDeploymentRequest): Promise<ReadyDeployment> => {
+}: PublishNetworkRequest): Promise<PublishedNetwork> => {
     const form = new FormData()
-    form.append("file", new Blob([hocon], {type: "text/plain"}), `${deploymentName}.hocon`)
-    form.append("name", deploymentName)
+    form.append("file", new Blob([hocon], {type: "text/plain"}), `${networkName}.hocon`)
+    form.append("name", networkName)
     form.append("org_name", orgName)
 
     const createResponse = await fetch(proxyUrl(serverUrl, "deployments"), {method: "POST", body: form})
-    await throwIfNotOk(createResponse, "Creating the deployment")
-    let deployment: Deployment = await createResponse.json()
+    await throwIfNotOk(createResponse, "Publishing")
+    let network: ServerNetwork = await createResponse.json()
 
-    while (deployment.status === "queued" || deployment.status === "building") {
+    while (network.status === "queued" || network.status === "building") {
         const waitResponse = await fetch(
-            proxyUrl(serverUrl, `deployments/${deployment.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
+            proxyUrl(serverUrl, `deployments/${network.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
         )
         // A timeout means it's still building, so ask again
         if (waitResponse.status !== httpStatus.GATEWAY_TIMEOUT) {
-            await throwIfNotOk(waitResponse, "Waiting for the deployment")
-            deployment = await waitResponse.json()
+            await throwIfNotOk(waitResponse, "Waiting for it to go live")
+            network = await waitResponse.json()
         }
     }
 
-    if (deployment.status !== "ready" || !deployment.url) {
-        throw new Error(deployment.error || `The deployment ended as ${deployment.status}`)
+    if (network.status !== "ready" || !network.url) {
+        throw new Error(network.error || `Publishing ended as ${network.status}`)
     }
 
-    return {id: deployment.id, url: deployment.url}
+    return {id: network.id, url: network.url}
 }
 
 /**
- * Stops a deployment.
+ * Takes a published network offline.
  */
-export const deleteDeployment = async (serverUrl: string, deploymentId: string): Promise<void> => {
-    const response = await fetch(proxyUrl(serverUrl, `deployments/${deploymentId}`), {method: "DELETE"})
-    await throwIfNotOk(response, "Deleting the deployment")
+export const unpublishNetwork = async (serverUrl: string, publishId: string): Promise<void> => {
+    const response = await fetch(proxyUrl(serverUrl, `deployments/${publishId}`), {method: "DELETE"})
+    await throwIfNotOk(response, "Unpublishing")
 }

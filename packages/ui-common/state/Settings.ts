@@ -85,8 +85,8 @@ interface Settings {
     readonly externalServices: {
         neuroSanUrl: string | null
     }
-    readonly nsDeploy: {
-        /** NS Deploy server that networks are published to. Publishing is off while this is null. */
+    readonly publish: {
+        /** Publish server that networks are published to. Publishing is off while this is null. */
         readonly serverUrl: string | null
         /** Sent as org_name with every publish. Required to publish. */
         readonly orgName: string | null
@@ -145,7 +145,7 @@ export const DEFAULT_SETTINGS: Settings = {
     externalServices: {
         neuroSanUrl: null,
     },
-    nsDeploy: {
+    publish: {
         serverUrl: null,
         orgName: null,
     },

@@ -12,34 +12,34 @@ import {
     PUBLISHED_TAB_BLOCKED_MESSAGE,
 } from "../../../../components/MultiAgentAccelerator/Publish/Publishing"
 import {
-    createDeployment,
-    deleteDeployment,
-    findReadyDeployment,
-    ReadyDeployment,
-} from "../../../../controller/nsDeploy/NsDeploy"
+    findPublishedNetwork,
+    PublishedNetwork,
+    publishNetwork,
+    unpublishNetwork,
+} from "../../../../controller/publish/PublishServer"
 import {usePublishStore} from "../../../../state/Publishing"
 import {useSettingsStore} from "../../../../state/Settings"
 
 //#region Constants
 
-const DEPLOYMENT_ID = "dep-123"
+const PUBLISH_ID = "dep-123"
 const DISPLAY_NAME = "Cailville Bakery"
 const HOCON = "{ tools: [] }"
 const LIVE_URL = "http://live.test/cailville_bakery"
 const NETWORK_ID = "cailville_bakery-1f2e3d4c"
 const NETWORK_NAME = "cailville_bakery"
 const ORG_NAME = "cailville"
-const SERVER_ERROR = "NS Deploy server unavailable"
-const SERVER_URL = "https://nsdeploy.test"
+const SERVER_ERROR = "Publish server unavailable"
+const SERVER_URL = "https://publish.test"
 
 //#endregion Constants
 
 //#region Mocks
 
-vi.mock("../../../../controller/nsDeploy/NsDeploy")
+vi.mock("../../../../controller/publish/PublishServer")
 vi.mock("../../../../components/Common/notification")
 
-const mockCreateDeployment = vi.mocked(createDeployment)
+const mockPublishNetwork = vi.mocked(publishNetwork)
 
 //#endregion Mocks
 
@@ -49,17 +49,17 @@ describe("PublishButton", () => {
     let user: UserEvent
     let openSpy: MockInstance<typeof window.open>
 
-    const makeReadyDeployment = (): ReadyDeployment => ({id: DEPLOYMENT_ID, url: LIVE_URL})
+    const makePublishedNetwork = (): PublishedNetwork => ({id: PUBLISH_ID, url: LIVE_URL})
 
     /**
      * Keeps the publish in flight until the returned `release()` is called, which then succeeds.
      */
     const mockInFlightPublish = () => {
         let release!: () => void
-        mockCreateDeployment.mockImplementation(
+        mockPublishNetwork.mockImplementation(
             () =>
-                new Promise<ReadyDeployment>((resolve) => {
-                    release = () => resolve(makeReadyDeployment())
+                new Promise<PublishedNetwork>((resolve) => {
+                    release = () => resolve(makePublishedNetwork())
                 })
         )
 
@@ -118,35 +118,35 @@ describe("PublishButton", () => {
         openSpy = vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         usePublishStore.setState({networks: {}})
         useSettingsStore.getState().resetSettings()
-        useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
+        useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
 
-        mockCreateDeployment.mockResolvedValue(makeReadyDeployment())
-        vi.mocked(deleteDeployment).mockResolvedValue()
-        vi.mocked(findReadyDeployment).mockResolvedValue(null)
+        mockPublishNetwork.mockResolvedValue(makePublishedNetwork())
+        vi.mocked(unpublishNetwork).mockResolvedValue()
+        vi.mocked(findPublishedNetwork).mockResolvedValue(null)
     })
 
     it("should offer to publish a network that isn't published", async () => {
         renderPublishButton()
 
-        await waitFor(() => expect(findReadyDeployment).toHaveBeenCalledWith(SERVER_URL, ORG_NAME, NETWORK_NAME))
+        await waitFor(() => expect(findPublishedNetwork).toHaveBeenCalledWith(SERVER_URL, ORG_NAME, NETWORK_NAME))
         screen.getByRole("button", {name: "Publish"})
         expect(screen.queryByRole("button", {name: SHOW_DETAILS_LABEL})).not.toBeInTheDocument()
     })
 
     it("should show View live for a network the server already has live, without publishing again", async () => {
-        vi.mocked(findReadyDeployment).mockResolvedValue(makeReadyDeployment())
+        vi.mocked(findPublishedNetwork).mockResolvedValue(makePublishedNetwork())
         renderPublishButton()
 
         await screen.findByRole("button", {name: "View live"})
         await openDetails()
 
         screen.getByText(LIVE_URL)
-        expect(mockCreateDeployment).not.toHaveBeenCalled()
+        expect(mockPublishNetwork).not.toHaveBeenCalled()
     })
 
     it("should stay on Publish when the server can't be asked whether the network is live", async () => {
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())
-        vi.mocked(findReadyDeployment).mockRejectedValue(new Error(SERVER_ERROR))
+        vi.mocked(findPublishedNetwork).mockRejectedValue(new Error(SERVER_ERROR))
         renderPublishButton()
 
         await waitFor(() => expect(warnSpy).toHaveBeenCalled())
@@ -162,7 +162,7 @@ describe("PublishButton", () => {
         expect(confirmation).toHaveTextContent(`"${DISPLAY_NAME}" will be published to ${SERVER_URL}`)
         expect(confirmation).toHaveTextContent(`under the org "${ORG_NAME}"`)
         expect(confirmation).toHaveTextContent(PUBLIC_ACCESS_WARNING)
-        expect(mockCreateDeployment).not.toHaveBeenCalled()
+        expect(mockPublishNetwork).not.toHaveBeenCalled()
     })
 
     it("should not publish when the confirmation is cancelled", async () => {
@@ -174,7 +174,7 @@ describe("PublishButton", () => {
         await user.click(cancelButton)
 
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-        expect(mockCreateDeployment).not.toHaveBeenCalled()
+        expect(mockPublishNetwork).not.toHaveBeenCalled()
         screen.getByRole("button", {name: "Publish"})
     })
 
@@ -183,21 +183,21 @@ describe("PublishButton", () => {
 
         await publishAndWaitUntilLive()
 
-        expect(mockCreateDeployment).toHaveBeenCalledWith(
+        expect(mockPublishNetwork).toHaveBeenCalledWith(
             expect.objectContaining({
                 serverUrl: SERVER_URL,
                 orgName: ORG_NAME,
-                deploymentName: NETWORK_NAME,
+                networkName: NETWORK_NAME,
                 hocon: HOCON,
             })
         )
     })
 
     it.each([
-        {missing: "an NS Deploy server", nsDeploy: {serverUrl: null}},
-        {missing: "an org name", nsDeploy: {orgName: null}},
-    ])("should not allow publishing without $missing in Settings", async ({nsDeploy}) => {
-        useSettingsStore.getState().updateSettings({nsDeploy})
+        {missing: "a publish server", publish: {serverUrl: null}},
+        {missing: "an org name", publish: {orgName: null}},
+    ])("should not allow publishing without $missing in Settings", async ({publish}) => {
+        useSettingsStore.getState().updateSettings({publish})
         renderPublishButton()
         const publishButton = screen.getByRole("button", {name: "Publish"})
 
@@ -297,7 +297,7 @@ describe("PublishButton", () => {
 
         const confirmation = await screen.findByRole("dialog")
         expect(confirmation).toHaveTextContent(`"${DISPLAY_NAME}" will be taken offline at ${LIVE_URL}`)
-        expect(deleteDeployment).not.toHaveBeenCalled()
+        expect(unpublishNetwork).not.toHaveBeenCalled()
     })
 
     it("should stay live when unpublishing is cancelled", async () => {
@@ -310,13 +310,13 @@ describe("PublishButton", () => {
         await user.click(cancelButton)
 
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-        expect(deleteDeployment).not.toHaveBeenCalled()
+        expect(unpublishNetwork).not.toHaveBeenCalled()
         screen.getByText("View live")
     })
 
     it("should not allow a second unpublish while the first is still running", async () => {
         let finishUnpublish!: () => void
-        vi.mocked(deleteDeployment).mockImplementation(
+        vi.mocked(unpublishNetwork).mockImplementation(
             () =>
                 new Promise<void>((resolve) => {
                     finishUnpublish = resolve
@@ -334,7 +334,7 @@ describe("PublishButton", () => {
     })
 
     it("should report the error and stay live when unpublishing fails", async () => {
-        vi.mocked(deleteDeployment).mockRejectedValue(new Error(SERVER_ERROR))
+        vi.mocked(unpublishNetwork).mockRejectedValue(new Error(SERVER_ERROR))
         renderPublishButton()
         await publishAndWaitUntilLive()
 
@@ -355,12 +355,12 @@ describe("PublishButton", () => {
         renderPublishButton()
         await publishAndWaitUntilLive()
         act(() => {
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: "https://other-nsdeploy.test"}})
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: "https://other-publish.test"}})
         })
 
         await clickUnpublishAndConfirm()
 
-        expect(deleteDeployment).toHaveBeenCalledWith(SERVER_URL, DEPLOYMENT_ID)
+        expect(unpublishNetwork).toHaveBeenCalledWith(SERVER_URL, PUBLISH_ID)
     })
 
     it("should offer to publish again after unpublishing", async () => {
@@ -373,7 +373,7 @@ describe("PublishButton", () => {
     })
 
     it("should report the error and offer to publish again when publishing fails", async () => {
-        mockCreateDeployment.mockRejectedValue(new Error(SERVER_ERROR))
+        mockPublishNetwork.mockRejectedValue(new Error(SERVER_ERROR))
         renderPublishButton()
 
         await clickPublishAndConfirm()

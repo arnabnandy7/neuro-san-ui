@@ -24,7 +24,7 @@ import {
     ENABLE_GOOGLE_ANALYTICS_ENV_VAR,
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
-    NSDEPLOY_BEARER_TOKEN_ENV_VAR,
+    PUBLISH_BEARER_TOKEN_ENV_VAR,
 } from "../../../Const"
 import {OPTIONAL_ENV_VARS, register, REQUIRED_ENV_VARS, REQUIRED_FOR_AUTH_ENV_VARS} from "../../../instrumentation"
 
@@ -62,7 +62,7 @@ describe("instrumentation", () => {
 
         // Default to "Publishing enabled"
         process.env[ENABLE_PUBLISHING_ENV_VAR] = "true"
-        process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR] = "NSDEPLOY_BEARER_TOKEN-test_value"
+        process.env[PUBLISH_BEARER_TOKEN_ENV_VAR] = "PUBLISH_BEARER_TOKEN-test_value"
     })
 
     const expectConsoleOutput = (
@@ -84,7 +84,7 @@ describe("instrumentation", () => {
         expect(console.info).toHaveBeenCalledWith("Logo service token:", logoServiceTokenSet)
         expect(console.info).toHaveBeenCalledWith("Neuro SAN server URL:", neuroSanServerURL)
         expect(console.info).toHaveBeenCalledWith("Publishing enabled:", enablePublishing)
-        expect(console.info).toHaveBeenCalledWith("NS Deploy bearer token:", bearerTokenSet)
+        expect(console.info).toHaveBeenCalledWith("Publish bearer token:", bearerTokenSet)
     }
 
     it("should not throw if env vars are all set", () => {
@@ -125,16 +125,16 @@ describe("instrumentation", () => {
         expect(() => register()).toThrow()
     })
 
-    it("Should throw if publishing is enabled but the NS Deploy bearer token is not set", () => {
-        delete process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
+    it("Should throw if publishing is enabled but the Publish bearer token is not set", () => {
+        delete process.env[PUBLISH_BEARER_TOKEN_ENV_VAR]
 
-        expect(() => register()).toThrow(NSDEPLOY_BEARER_TOKEN_ENV_VAR)
+        expect(() => register()).toThrow(PUBLISH_BEARER_TOKEN_ENV_VAR)
     })
 
-    it("Should not throw if publishing is disabled and the NS Deploy bearer token is not set", () => {
+    it("Should not throw if publishing is disabled and the Publish bearer token is not set", () => {
         vi.spyOn(console, "info").mockImplementation(vi.fn())
         process.env[ENABLE_PUBLISHING_ENV_VAR] = "false"
-        delete process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
+        delete process.env[PUBLISH_BEARER_TOKEN_ENV_VAR]
 
         expect(() => register()).not.toThrow()
     })
@@ -173,7 +173,7 @@ describe("instrumentation", () => {
         delete process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR]
         delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
         delete process.env[ENABLE_PUBLISHING_ENV_VAR]
-        delete process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
+        delete process.env[PUBLISH_BEARER_TOKEN_ENV_VAR]
 
         // Spy on console.warn to suppress output during test
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())

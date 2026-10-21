@@ -17,13 +17,13 @@ limitations under the License.
 import {createMocks, RequestMethod} from "node-mocks-http"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
-import handler from "../../../../pages/api/nsdeploy/[...path]"
+import handler from "../../../../pages/api/publish/[...path]"
 
-const SERVER_URL = "https://nsdeploy.test"
+const SERVER_URL = "https://publish.test"
 
-// Each test uses one of the NS Deploy endpoints the client calls (see controller/nsDeploy/NsDeploy.ts). The
+// Each test uses one of the publish server endpoints the client calls (see controller/publish/PublishServer.ts). The
 // comment on each test or group names it.
-describe("NS Deploy proxy", () => {
+describe("Publish proxy", () => {
     withStrictMocks()
 
     let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>
@@ -42,7 +42,7 @@ describe("NS Deploy proxy", () => {
         fetchMock = vi.fn<typeof fetch>()
         vi.stubGlobal("fetch", fetchMock)
         vi.stubEnv("ENABLE_PUBLISHING", "true")
-        vi.stubEnv("NSDEPLOY_BEARER_TOKEN", "test-token")
+        vi.stubEnv("PUBLISH_BEARER_TOKEN", "test-token")
     })
 
     afterEach(() => {

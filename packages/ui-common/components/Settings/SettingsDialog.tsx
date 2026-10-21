@@ -25,10 +25,10 @@ import {
     useState,
 } from "react"
 
-import {AdvancedSettings} from "./AdvancedSettings"
 import {ApiKeyErrorBanner, ApiKeyFailure} from "./ApiKeyErrorBanner"
 import {ApiKeyInput} from "./ApiKeyInput"
 import {useCheckmarkFade} from "./FadingCheckmark"
+import {PublishingSettings} from "./PublishingSettings"
 import {Section, SettingsSectionTitle, SettingsSubsection, SubSection, SubSectionBody} from "./SettingsLayout"
 import {SettingsRow} from "./SettingsRow"
 import {getBrandingSuggestions, testConnection, TestConnectionResult} from "../../controller/agent/Agent"
@@ -1032,7 +1032,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
                 {getApiKeysSection()}
                 {getBehaviorSection()}
                 {getAppearanceSection()}
-                {enablePublishing && <AdvancedSettings id={`${id}-advanced`} />}
+                {enablePublishing && <PublishingSettings id={`${id}-publishing`} />}
                 {getResetSettingsSection()}
             </MUIDialog>
         </ThemeProvider>

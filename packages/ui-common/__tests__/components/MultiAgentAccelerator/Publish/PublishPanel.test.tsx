@@ -19,8 +19,8 @@ const renderPanel = (publishState: PublishState) =>
     )
 
 const makeLiveNetwork = (): PublishState => ({
-    deploymentId: "dep-123",
-    serverUrl: "https://nsdeploy.test",
+    publishId: "dep-123",
+    serverUrl: "https://publish.test",
     status: PublishStatus.Live,
     url: LIVE_URL,
 })

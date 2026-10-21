@@ -255,8 +255,8 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     // Read temporary networks to find agent_network_definition for the currently selected network.
     const tempNetworks = useTempNetworksStore((state) => state.tempNetworks)
 
-    // Publishing is only offered once an NS Deploy server is set in Settings
-    const nsDeployServerUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
+    // Publishing is only offered once a publish server is set in Settings
+    const publishServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
 
     const currentTempNetwork = useMemo(
         () => (networkId ? tempNetworks.find((n) => n.agentInfo.agent_name === networkId) : undefined),
@@ -774,7 +774,7 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     const getTitle = () => {
         if (!networkDisplayName) return null
 
-        const isPublishingSetUp = enablePublishing && Boolean(nsDeployServerUrl)
+        const isPublishingSetUp = enablePublishing && Boolean(publishServerUrl)
         const isViewingNetwork = !isAgentNetworkDesignerMode && !isEditingNetwork
         const hoconToPublish = currentTempNetwork?.networkHocon
         const showPublishButton =

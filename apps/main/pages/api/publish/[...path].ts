@@ -16,7 +16,7 @@ limitations under the License.
 
 import {NextApiRequest, NextApiResponse} from "next"
 
-import {ENABLE_PUBLISHING_ENV_VAR, NSDEPLOY_BEARER_TOKEN_ENV_VAR} from "../../../Const"
+import {ENABLE_PUBLISHING_ENV_VAR, PUBLISH_BEARER_TOKEN_ENV_VAR} from "../../../Const"
 
 // Read the raw body so multipart uploads pass through unchanged
 export const config = {api: {bodyParser: false}}
@@ -30,7 +30,7 @@ const readBody = async (req: NextApiRequest): Promise<Uint8Array<ArrayBuffer>> =
 }
 
 /**
- * Parses the NS Deploy server URL the browser sent.
+ * Parses the publish server URL the browser sent.
  * @returns The URL, or null if it's missing or not http(s)
  */
 const parseServerUrl = (server: string | string[] | undefined): URL | null => {
@@ -45,9 +45,9 @@ const parseServerUrl = (server: string | string[] | undefined): URL | null => {
 }
 
 /**
- * Forwards requests to the NS Deploy server, which doesn't allow requests from browsers (no CORS headers).
- * `/api/nsdeploy/<path>?server=<NS Deploy URL>&<query>` is sent to `<NS Deploy URL>/<path>?<query>` with the bearer
- * token added. The route only exists while publishing is enabled.
+ * Forwards requests to the publish server, which doesn't allow requests from browsers (no CORS headers).
+ * `/api/publish/<path>?server=<server URL>&<query>` is sent to `<server URL>/<path>?<query>` with the bearer token
+ * added. The route only exists while publishing is enabled.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (process.env[ENABLE_PUBLISHING_ENV_VAR] !== "true") {
@@ -56,15 +56,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Startup refuses to run with publishing enabled and no token, so it's always set here.
-    // WARNING: this sends the token to whatever NS Deploy server URL the user enters in Settings, so anyone who can use
+    // WARNING: this sends the token to whatever publish server URL the user enters in Settings, so anyone who can use
     // the app can have it sent to a server they control. Consider only forwarding to an allowed host.
-    const token = process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR]
+    const token = process.env[PUBLISH_BEARER_TOKEN_ENV_VAR]
 
     const {path, server, ...query} = req.query
 
     const serverUrl = parseServerUrl(server)
     if (!serverUrl) {
-        res.status(400).json({detail: "Missing or invalid NS Deploy server URL"})
+        res.status(400).json({detail: "Missing or invalid publish server URL"})
         return
     }
 
@@ -93,6 +93,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         res.status(upstream.status).send(Buffer.from(await upstream.arrayBuffer()))
     } catch (e) {
-        res.status(502).json({detail: `Couldn't reach the NS Deploy server: ${String(e)}`})
+        res.status(502).json({detail: `Couldn't reach the publish server: ${String(e)}`})
     }
 }

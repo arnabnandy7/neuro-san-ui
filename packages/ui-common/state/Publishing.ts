@@ -27,10 +27,10 @@ interface Publishing {
 
 export interface Published {
     readonly status: PublishStatus.Live
-    /** The NS Deploy server it's published on, so it's unpublished from the same one */
+    /** The publish server it's published on, so it's unpublished from the same one */
     readonly serverUrl: string
     /** The server's id for it, needed to unpublish */
-    readonly deploymentId: string
+    readonly publishId: string
     readonly url: string
 }
 

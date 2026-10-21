@@ -124,7 +124,7 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
     const networkHocon = item?.temporaryNetworkHocon ?? null
     const publishStatus = usePublishStore((state) => state.networks[itemId]?.status)
     const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
-    const publishServerUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
+    const publishServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
     const networkName = item?.temporaryNetworkName
     const showPublishButton = enablePublishing && Boolean(publishServerUrl) && networkHocon && networkName
 

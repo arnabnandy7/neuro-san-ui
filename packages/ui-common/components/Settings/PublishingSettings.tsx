@@ -15,10 +15,8 @@ limitations under the License.
 */
 
 import ClearIcon from "@mui/icons-material/Clear"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
-import Collapse from "@mui/material/Collapse"
 import FormLabel from "@mui/material/FormLabel"
 import IconButton from "@mui/material/IconButton"
 import InputAdornment from "@mui/material/InputAdornment"
@@ -28,14 +26,14 @@ import TextField from "@mui/material/TextField"
 import {FC, ReactNode, useState} from "react"
 
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
-import {checkHealth} from "../../controller/nsDeploy/NsDeploy"
+import {checkHealth} from "../../controller/publish/PublishServer"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 
-export const NS_DEPLOY_HOST_LABEL = "NS Deploy server host"
+export const PUBLISH_SERVER_HOST_LABEL = "Publish server host"
 export const ORG_NAME_LABEL = "Org name"
 export const SAVE_PUBLISHING_LABEL = "Save publishing settings"
-export const TEST_NS_DEPLOY_SERVER_LABEL = "Test NS Deploy server"
+export const TEST_PUBLISH_SERVER_LABEL = "Test publish server"
 
 interface StatusTextProps {
     readonly color: string
@@ -101,20 +99,18 @@ const FieldGrid: FC<{readonly children: ReactNode}> = ({children}) => (
     </Box>
 )
 
-interface AdvancedSettingsProps {
+interface PublishingSettingsProps {
     readonly id: string
 }
 
 /**
- * Collapsible "Advanced" section of the Settings dialog: the NS Deploy server that networks are published to, and the
- * org name sent with each publish.
+ * "Publishing" section of the Settings dialog: the publish server that networks are published to, and the org name
+ * sent with each publish.
  */
-export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
+export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
     const updateSettings = useSettingsStore((state) => state.updateSettings)
-    const savedServerUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl) ?? ""
-    const savedOrgName = useSettingsStore((state) => state.settings.nsDeploy.orgName) ?? ""
-
-    const [isExpanded, setIsExpanded] = useState(false)
+    const savedServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl) ?? ""
+    const savedOrgName = useSettingsStore((state) => state.settings.publish.orgName) ?? ""
 
     const [protocol, setProtocol] = useState<Protocol>(savedServerUrl.startsWith("http://") ? "http" : "https")
     const [hostInput, setHostInput] = useState(stripProtocol(savedServerUrl))
@@ -140,12 +136,11 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
 
     const handleSave = () => {
         // Saving an empty server turns publishing off
-        updateSettings({nsDeploy: {serverUrl: serverUrl || null, orgName: orgName || null}})
+        updateSettings({publish: {serverUrl: serverUrl || null, orgName: orgName || null}})
     }
 
     const getPublishingSubsection = () => (
         <SettingsSubsection
-            caption="NS Deploy"
             status={
                 isPublishingOn ? (
                     <StatusText color="success.main">On</StatusText>
@@ -153,13 +148,13 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                     <StatusText color="text.disabled">Off</StatusText>
                 )
             }
-            title="Publishing"
+            title="Publish server"
         >
             <FieldGrid>
                 <FieldRow
                     action={
                         <Button
-                            aria-label={TEST_NS_DEPLOY_SERVER_LABEL}
+                            aria-label={TEST_PUBLISH_SERVER_LABEL}
                             disabled={!serverUrl}
                             onClick={handleTest}
                             size="small"
@@ -175,10 +170,10 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                                 setProtocol(normalized.protocol)
                             }}
                             onChange={(e) => handleHostChange(e.target.value)}
-                            placeholder="nsdeploy.example.com"
+                            placeholder="publish.example.com"
                             size="small"
                             slotProps={{
-                                htmlInput: {"aria-label": NS_DEPLOY_HOST_LABEL},
+                                htmlInput: {"aria-label": PUBLISH_SERVER_HOST_LABEL},
                                 input: {
                                     startAdornment: (
                                         <InputAdornment
@@ -192,7 +187,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                                             }}
                                         >
                                             <Select<Protocol>
-                                                aria-label="NS Deploy protocol"
+                                                aria-label="Publish server protocol"
                                                 disableUnderline={true}
                                                 onChange={(e) => {
                                                     setProtocol(e.target.value)
@@ -209,7 +204,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
                                     endAdornment: (
                                         <InputAdornment position="end">
                                             <IconButton
-                                                aria-label="Clear NS Deploy server"
+                                                aria-label="Clear publish server"
                                                 edge="end"
                                                 onClick={() => handleHostChange("")}
                                                 size="small"
@@ -264,20 +259,8 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({id}) => {
 
     return (
         <Section>
-            <Box sx={{alignItems: "center", display: "flex", gap: 1}}>
-                <SettingsSectionTitle>Advanced</SettingsSectionTitle>
-                <IconButton
-                    aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Collapse advanced settings" : "Expand advanced settings"}
-                    onClick={() => setIsExpanded((expanded) => !expanded)}
-                    size="small"
-                >
-                    <ExpandMoreIcon
-                        sx={{transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 150ms"}}
-                    />
-                </IconButton>
-            </Box>
-            <Collapse in={isExpanded}>{getPublishingSubsection()}</Collapse>
+            <SettingsSectionTitle>Publishing</SettingsSectionTitle>
+            {getPublishingSubsection()}
         </Section>
     )
 }

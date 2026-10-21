@@ -26,7 +26,7 @@ import {
     ENABLE_GOOGLE_ANALYTICS_ENV_VAR,
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
-    NSDEPLOY_BEARER_TOKEN_ENV_VAR,
+    PUBLISH_BEARER_TOKEN_ENV_VAR,
 } from "./Const"
 
 /**
@@ -87,12 +87,12 @@ export const register = () => {
         )
     }
 
-    // Publishing sends every request to the NS Deploy server with this token
+    // Publishing sends every request to the publish server with this token
     const enablePublishing = process.env[ENABLE_PUBLISHING_ENV_VAR] === "true"
-    if (enablePublishing && isMissing(NSDEPLOY_BEARER_TOKEN_ENV_VAR)) {
+    if (enablePublishing && isMissing(PUBLISH_BEARER_TOKEN_ENV_VAR)) {
         throw new Error(
             `Publishing is enabled (${ENABLE_PUBLISHING_ENV_VAR} is true) but the ${
-                NSDEPLOY_BEARER_TOKEN_ENV_VAR
+                PUBLISH_BEARER_TOKEN_ENV_VAR
             } environment variable is empty or undefined.`
         )
     }
@@ -114,5 +114,5 @@ export const register = () => {
     console.info("Logo service token:", process.env["LOGO_SERVICE_TOKEN"] ? "set" : "not set")
     console.info("Neuro SAN server URL:", process.env["NEURO_SAN_SERVER_URL"])
     console.info("Publishing enabled:", enablePublishing)
-    console.info("NS Deploy bearer token:", process.env[NSDEPLOY_BEARER_TOKEN_ENV_VAR] ? "set" : "not set")
+    console.info("Publish bearer token:", process.env[PUBLISH_BEARER_TOKEN_ENV_VAR] ? "set" : "not set")
 }

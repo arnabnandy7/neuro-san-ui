@@ -29,7 +29,7 @@ import {
     filterNodeEvents,
 } from "../../../../components/MultiAgentAccelerator/AgentFlow/AgentFlow"
 import {ThoughtBubbleEdgeShape} from "../../../../components/MultiAgentAccelerator/ThoughtBubbles/ThoughtBubbleEdge"
-import {findReadyDeployment} from "../../../../controller/nsDeploy/NsDeploy"
+import {findPublishedNetwork} from "../../../../controller/publish/PublishServer"
 import {ChatMessageType, ConnectivityInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
 import {useSettingsStore} from "../../../../state/Settings"
@@ -102,8 +102,8 @@ type ThoughtBubbleOverlayProps = {
 
 vi.mock("../../../../controller/agent/Agent")
 
-// The Publish button asks the NS Deploy server whether the network is already live
-vi.mock("../../../../controller/nsDeploy/NsDeploy")
+// The Publish button asks the publish server whether the network is already live
+vi.mock("../../../../controller/publish/PublishServer")
 
 vi.mock("notistack", async (importOriginal) => {
     const actual = await importOriginal<typeof import("notistack")>()
@@ -1718,9 +1718,9 @@ describe("AgentFlow", () => {
         }
 
         beforeEach(() => {
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: "https://nsdeploy.test", orgName: "org"}})
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: "https://publish.test", orgName: "org"}})
             useEnvironmentStore.getState().setEnablePublishing(true)
-            vi.mocked(findReadyDeployment).mockResolvedValue(null)
+            vi.mocked(findPublishedNetwork).mockResolvedValue(null)
         })
 
         it("Should offer to publish a temporary network", async () => {
@@ -1729,8 +1729,8 @@ describe("AgentFlow", () => {
             await screen.findByRole("button", {name: "Publish"})
         })
 
-        it("Should not offer to publish until an NS Deploy server is set in Settings", () => {
-            useSettingsStore.getState().updateSettings({nsDeploy: {serverUrl: null}})
+        it("Should not offer to publish until a publish server is set in Settings", () => {
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: null}})
             renderPublishableNetwork()
 
             // First proves the bar, where the button would appear, is on screen

@@ -56,8 +56,8 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
         const publishState = state.networks[networkId]
         return publishState?.status === PublishStatus.Live ? publishState.url : null
     })
-    const serverUrl = useSettingsStore((state) => state.settings.nsDeploy.serverUrl)
-    const orgName = useSettingsStore((state) => state.settings.nsDeploy.orgName)
+    const serverUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const orgName = useSettingsStore((state) => state.settings.publish.orgName)
     const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
 
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)

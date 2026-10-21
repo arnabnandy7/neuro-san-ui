@@ -75,25 +75,15 @@ const SubsectionTitle = styled(Typography)(({theme}) => ({
 
 interface SettingsSubsectionProps {
     readonly title: string
-    /** Shown after the title in lighter text */
-    readonly caption?: string
     /** Shown at the right end of the title row */
     readonly status?: ReactNode
     readonly children: ReactNode
 }
 
-export const SettingsSubsection: FC<SettingsSubsectionProps> = ({caption, children, status: statusNode, title}) => (
+export const SettingsSubsection: FC<SettingsSubsectionProps> = ({children, status: statusNode, title}) => (
     <SubSection>
         <SubsectionTitle variant="subtitle1">
             {title}
-            {caption && (
-                <Typography
-                    component="span"
-                    sx={{color: "text.secondary", fontSize: "0.85em", fontWeight: 400}}
-                >
-                    {caption}
-                </Typography>
-            )}
             {statusNode && (
                 <Box
                     component="span"
