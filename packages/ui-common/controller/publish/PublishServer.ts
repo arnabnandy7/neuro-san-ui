@@ -18,8 +18,6 @@ limitations under the License.
  * Client for a publish server, which runs a network's HOCON as a live website. We use it to publish networks.
  * Requests go through our `/api/publish` route because the server doesn't allow requests from browsers.
  *
- * The server calls a published network a "deployment", so that word only shows up in its paths and JSON here.
- *
  * Endpoints we call:
  * - `GET /health`: whether the server is up. No token needed. Used by checkHealth.
  * - `GET /deployments`: lists published networks. Used by findPublishedNetwork.
