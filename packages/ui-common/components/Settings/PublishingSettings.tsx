@@ -26,7 +26,7 @@ import TextField from "@mui/material/TextField"
 import {FC, ReactNode, useState} from "react"
 
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
-import {checkHealth} from "../../controller/publish/PublishServer"
+import {checkHealth} from "../../controller/publish/Publish"
 import {useEnvironmentStore} from "../../state/Environment"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"

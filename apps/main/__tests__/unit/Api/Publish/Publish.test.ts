@@ -21,7 +21,7 @@ import handler from "../../../../pages/api/publish/[...path]"
 
 const SERVER_URL = "https://publish.test"
 
-// Each test uses one of the publish server endpoints the client calls (see controller/publish/PublishServer.ts). The
+// Each test uses one of the publish server endpoints the client calls (see controller/publish/Publish.ts). The
 // comment on each test or group names it.
 describe("Publish API route", () => {
     withStrictMocks()

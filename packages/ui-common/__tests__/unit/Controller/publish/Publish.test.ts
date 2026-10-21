@@ -4,7 +4,7 @@ import {
     findPublishedNetwork,
     publishNetwork,
     unpublishNetwork,
-} from "../../../../controller/publish/PublishServer"
+} from "../../../../controller/publish/Publish"
 
 const SERVER_URL = "https://publish.test"
 const NETWORK_NAME = "cailville_bakery"
@@ -14,7 +14,7 @@ const PUBLISH_ID = "dep-123"
 const LIVE_URL = "https://publish.test/sites/cailville_bakery"
 
 // Covers each publish server endpoint the client calls. The comment on each test names the endpoints it exercises.
-describe("PublishServer", () => {
+describe("Publish", () => {
     withStrictMocks()
 
     let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>

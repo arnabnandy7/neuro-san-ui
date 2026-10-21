@@ -86,7 +86,7 @@ interface Settings {
         neuroSanUrl: string | null
     }
     readonly publish: {
-        /** Publish server that networks are published to. Publishing is off while this is null. */
+        /** Publish server that networks are published to. Overrides the default from the environment when set. */
         readonly serverUrl: string | null
         /** Sent as org_name with every publish. Required to publish. */
         readonly orgName: string | null

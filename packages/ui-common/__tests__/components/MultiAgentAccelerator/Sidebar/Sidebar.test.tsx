@@ -49,7 +49,7 @@ import {
     SPARKLE_HIGHLIGHT_CLASS,
 } from "../../../../components/MultiAgentAccelerator/Sidebar/Sidebar"
 import {testConnection, TestConnectionResult} from "../../../../controller/agent/Agent"
-import {findPublishedNetwork, publishNetwork} from "../../../../controller/publish/PublishServer"
+import {findPublishedNetwork, publishNetwork} from "../../../../controller/publish/Publish"
 import {NetworkIconSuggestions} from "../../../../controller/Types/NetworkIconSuggestions"
 import {AgentInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
@@ -85,7 +85,7 @@ vi.mock("@mui/x-tree-view/RichTreeView", async (importOriginal) => {
 })
 
 vi.mock("../../../../controller/agent/Agent")
-vi.mock("../../../../controller/publish/PublishServer")
+vi.mock("../../../../controller/publish/Publish")
 vi.mock("../../../../components/Common/notification")
 vi.mock("../../../../utils/File", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../../../utils/File")>()

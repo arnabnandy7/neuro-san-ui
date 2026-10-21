@@ -19,7 +19,7 @@ limitations under the License.
  * Publish button and sidebar badge show.
  */
 
-import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../controller/publish/PublishServer"
+import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../controller/publish/Publish"
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
 import {NotificationType, sendNotification} from "../../Common/notification"
 

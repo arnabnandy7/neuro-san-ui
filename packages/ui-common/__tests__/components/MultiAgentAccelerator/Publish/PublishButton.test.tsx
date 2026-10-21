@@ -16,7 +16,7 @@ import {
     PublishedNetwork,
     publishNetwork,
     unpublishNetwork,
-} from "../../../../controller/publish/PublishServer"
+} from "../../../../controller/publish/Publish"
 import {usePublishStore} from "../../../../state/Publishing"
 import {useSettingsStore} from "../../../../state/Settings"
 
@@ -36,7 +36,7 @@ const SERVER_URL = "https://publish.test"
 
 //#region Mocks
 
-vi.mock("../../../../controller/publish/PublishServer")
+vi.mock("../../../../controller/publish/Publish")
 vi.mock("../../../../components/Common/notification")
 
 const mockPublishNetwork = vi.mocked(publishNetwork)

@@ -48,6 +48,9 @@ interface PublishStore {
     readonly clearPublishState: (networkId: string) => void
 }
 
+/**
+ * The hook that lets apps use the store.
+ */
 export const usePublishStore = create<PublishStore>()((set) => ({
     networks: {},
     setPublishState: (networkId, publishState) =>

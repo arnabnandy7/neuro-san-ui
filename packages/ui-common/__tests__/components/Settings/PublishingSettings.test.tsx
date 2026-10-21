@@ -9,11 +9,11 @@ import {
     SAVE_PUBLISHING_LABEL,
     TEST_PUBLISH_SERVER_LABEL,
 } from "../../../components/Settings/PublishingSettings"
-import {checkHealth} from "../../../controller/publish/PublishServer"
+import {checkHealth} from "../../../controller/publish/Publish"
 import {useEnvironmentStore} from "../../../state/Environment"
 import {useSettingsStore} from "../../../state/Settings"
 
-vi.mock("../../../controller/publish/PublishServer")
+vi.mock("../../../controller/publish/Publish")
 
 const ORG_NAME = "cailville"
 const SERVER_HOST = "publish.test"

@@ -29,7 +29,7 @@ import {
     filterNodeEvents,
 } from "../../../../components/MultiAgentAccelerator/AgentFlow/AgentFlow"
 import {ThoughtBubbleEdgeShape} from "../../../../components/MultiAgentAccelerator/ThoughtBubbles/ThoughtBubbleEdge"
-import {findPublishedNetwork} from "../../../../controller/publish/PublishServer"
+import {findPublishedNetwork} from "../../../../controller/publish/Publish"
 import {ChatMessageType, ConnectivityInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
 import {useSettingsStore} from "../../../../state/Settings"
@@ -103,7 +103,7 @@ type ThoughtBubbleOverlayProps = {
 vi.mock("../../../../controller/agent/Agent")
 
 // The Publish button asks the publish server whether the network is already live
-vi.mock("../../../../controller/publish/PublishServer")
+vi.mock("../../../../controller/publish/Publish")
 
 vi.mock("notistack", async (importOriginal) => {
     const actual = await importOriginal<typeof import("notistack")>()
