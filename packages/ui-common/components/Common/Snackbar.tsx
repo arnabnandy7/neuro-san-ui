@@ -90,7 +90,15 @@ export const Snackbar = ({
                 }}
             >
                 {!hideIconVariant && (
-                    <Box id={`${id}-snackbar-icon-box-container`}>
+                    <Box
+                        id={`${id}-snackbar-icon-box-container`}
+                        // With a description, as tall as the title's first line so the icon centers on it
+                        sx={
+                            description
+                                ? {alignItems: "center", display: "flex", fontSize: "0.95rem", height: "1.5em"}
+                                : {}
+                        }
+                    >
                         <IconBox
                             className={variant}
                             data-testid={`${id}-snackbar-icon-box`}
@@ -135,7 +143,7 @@ export const Snackbar = ({
                     {description && (
                         <Box
                             id={`${id}-snackbar-description-box`}
-                            sx={{fontSize: "0.8rem", paddingTop: "10px", paddingBottom: "10px"}}
+                            sx={{fontSize: "0.8rem", paddingTop: "10px"}}
                         >
                             {description}
                         </Box>
