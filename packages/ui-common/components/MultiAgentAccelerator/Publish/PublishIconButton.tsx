@@ -19,24 +19,21 @@ import Box from "@mui/material/Box"
 import CircularProgress from "@mui/material/CircularProgress"
 import IconButton from "@mui/material/IconButton"
 import Tooltip from "@mui/material/Tooltip"
-import {FC, useEffect, useState} from "react"
+import {FC, useState} from "react"
 
-import {checkIfPublished, openInNewTab, publish, PUBLISH_SETTINGS_REQUIRED_MESSAGE, PublishTarget} from "./Publish"
+import {openInNewTab, publish, PUBLISH_SETTINGS_REQUIRED_MESSAGE} from "./Publish"
 import {PublishConfirmation} from "./PublishConfirmation"
-import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
-import {useSettingsStore} from "../../../state/Settings"
+import {usePublishTarget} from "./usePublishTarget"
+import {PublishStatus, usePublishStore} from "../../../state/Publish"
 
 interface PublishIconButtonProps {
     /** The network's name as people read it, for the confirmation */
     readonly displayName: string
-    /** Disables the button, for example once the network has expired */
-    readonly disabled: boolean
-    /** The network's HOCON, the same file Download gives */
     readonly hocon: string
     readonly id: string
-    /** The network's id in the app */
+    /** An expired network can't be published, but its live site still opens */
+    readonly isExpired: boolean
     readonly networkId: string
-    /** The agent network name, which it's published under */
     readonly networkName: string
 }
 
@@ -46,9 +43,9 @@ interface PublishIconButtonProps {
  */
 export const PublishIconButton: FC<PublishIconButtonProps> = ({
     displayName,
-    disabled,
     hocon,
     id,
+    isExpired,
     networkId,
     networkName,
 }) => {
@@ -57,23 +54,14 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
         const publishState = state.networks[networkId]
         return publishState?.status === PublishStatus.Published ? publishState.url : null
     })
-    const serverUrl = usePublishServerUrl()
-    const orgName = useSettingsStore((state) => state.settings.publish.orgName)
-    const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
+    const target = usePublishTarget(networkId, networkName)
 
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
-
-    // We only remember published networks in memory, so ask the server whether this one is live, for example after a
-    // reload
-    useEffect(() => {
-        if (serverUrl && orgName) {
-            void checkIfPublished({id: networkId, name: networkName}, {serverUrl, orgName})
-        }
-    }, [networkId, networkName, orgName, serverUrl])
 
     const getLabel = () => {
         if (liveUrl) return "View live"
         if (publishStatus === PublishStatus.Publishing) return "Publishing..."
+        if (isExpired) return "Expired"
         return target ? "Publish" : PUBLISH_SETTINGS_REQUIRED_MESSAGE
     }
 
@@ -87,7 +75,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                 <span>
                     <IconButton
                         aria-label={label}
-                        disabled={disabled || isPublishing || (!liveUrl && !target)}
+                        disabled={isPublishing || (!liveUrl && (isExpired || !target))}
                         id={id}
                         onClick={(e) => {
                             e.stopPropagation()
@@ -102,7 +90,6 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                             color: "var(--bs-secondary)",
                             p: 0,
                             "&:hover": {color: "var(--bs-secondary-dark)"},
-                            // The spinner stays fully visible while publishing
                             "&.Mui-disabled": {opacity: isPublishing ? 1 : 0.3},
                         }}
                     >

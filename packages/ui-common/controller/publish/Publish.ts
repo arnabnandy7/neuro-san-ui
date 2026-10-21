@@ -15,21 +15,8 @@ limitations under the License.
 */
 
 /**
- * Client for a publish server, which runs a network's HOCON as a live website. We use it to publish networks.
- * Requests go through our `/api/publish` route because the server doesn't allow requests from browsers.
- *
- * Endpoints we call:
- * - `GET /health`: whether the server is up. No token needed. Used by checkHealth.
- * - `GET /deployments`: lists published networks. Used by findPublishedNetwork.
- * - `POST /deployments`: uploads the HOCON as `file` along with `name`, `org_name`, `theme` and `theme_refresh`.
- *   Used by publishNetwork.
- * - `GET /deployments/{id}/wait?timeout=60`: waits for the build. 504 means it's still building, so ask again. Used by
- *   publishNetwork.
- * - `DELETE /deployments/{id}`: takes a network offline. Used by unpublishNetwork.
- *
- * The server identifies a network by its name within an org, so publishing the same name again replaces it.
- *
- * The server also has `GET /deployments/{id}/logs?tail=150` (build log), which we don't use yet.
+ * Client for the publish server. Requests go through our `/api/publish` route because the server doesn't allow
+ * requests from browsers.
  */
 
 import httpStatus from "http-status"
@@ -40,6 +27,7 @@ import {testConnection, TestConnectionResult} from "../agent/Agent"
 
 export interface PublishedNetwork {
     readonly id: string
+    readonly name: string
     readonly url: string
 }
 
@@ -98,21 +86,18 @@ export const checkHealth = (serverUrl: string): Promise<TestConnectionResult> =>
     testConnection(publishRouteUrl(serverUrl, "health"))
 
 /**
- * Finds the live network with this name in the org, if there is one.
+ * Lists the org's live networks.
  */
-export const findPublishedNetwork = async (
-    serverUrl: string,
-    orgName: string,
-    networkName: string
-): Promise<PublishedNetwork | null> => {
+export const listPublishedNetworks = async (serverUrl: string, orgName: string): Promise<PublishedNetwork[]> => {
     const response = await fetch(publishRouteUrl(serverUrl, "deployments"))
     await throwIfNotOk(response, "Listing published networks")
     const {deployments: networks}: {deployments: ServerNetwork[]} = await response.json()
 
-    const live = networks.find(
-        (network) => network.name === networkName && network.org_name === orgName && network.status === "ready"
+    return networks.flatMap((network) =>
+        network.org_name === orgName && network.status === "ready" && network.url
+            ? [{id: network.id, name: network.name, url: network.url}]
+            : []
     )
-    return live?.url ? {id: live.id, url: live.url} : null
 }
 
 /**
@@ -151,7 +136,7 @@ export const publishNetwork = async ({
         throw new Error(network.error || `Publishing ended as ${network.status}`)
     }
 
-    return {id: network.id, url: network.url}
+    return {id: network.id, name: network.name, url: network.url}
 }
 
 /**

@@ -102,7 +102,6 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     const useNativeNames = useSettingsStore((state) => state.settings.appearance.useNativeNames)
     const nativeNamesCheckmark = useCheckmarkFade()
 
-    // Publishing feature switch
     const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
 
     /*

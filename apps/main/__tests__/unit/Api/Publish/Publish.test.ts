@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import httpStatus from "http-status"
 import {createMocks, RequestMethod} from "node-mocks-http"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
+import {ENABLE_PUBLISHING_ENV_VAR, PUBLISH_BEARER_TOKEN_ENV_VAR} from "../../../../Const"
 import handler from "../../../../pages/api/publish/[...path]"
 
 const SERVER_URL = "https://publish.test"
 
-// Each test uses one of the publish server endpoints the client calls (see controller/publish/Publish.ts). The
-// comment on each test or group names it.
+// Each test sends one of the publish server endpoints through the route. The comment on each test or group names it.
 describe("Publish API route", () => {
     withStrictMocks()
 
@@ -41,8 +42,8 @@ describe("Publish API route", () => {
     beforeEach(() => {
         fetchMock = vi.fn<typeof fetch>()
         vi.stubGlobal("fetch", fetchMock)
-        vi.stubEnv("ENABLE_PUBLISHING", "true")
-        vi.stubEnv("PUBLISH_BEARER_TOKEN", "test-token")
+        vi.stubEnv(ENABLE_PUBLISHING_ENV_VAR, "true")
+        vi.stubEnv(PUBLISH_BEARER_TOKEN_ENV_VAR, "test-token")
     })
 
     afterEach(() => {
@@ -59,13 +60,13 @@ describe("Publish API route", () => {
         const [target, init] = fetchMock.mock.calls[0]
         expect(String(target)).toBe(`${SERVER_URL}/deployments/dep-1/wait?timeout=60`)
         expect(init?.headers).toMatchObject({Authorization: "Bearer test-token"})
-        expect(res._getStatusCode()).toBe(200)
+        expect(res._getStatusCode()).toBe(httpStatus.OK)
         expect(JSON.parse(res._getData().toString())).toEqual({id: "dep-1", status: "ready"})
     })
 
     // POST /deployments - Create Network
     it("should pass the upload body and its content type through unchanged", async () => {
-        fetchMock.mockResolvedValue(Response.json({id: "dep-1"}, {status: 202}))
+        fetchMock.mockResolvedValue(Response.json({id: "dep-1"}, {status: httpStatus.ACCEPTED}))
 
         const res = await callProxy("POST", {path: ["deployments"], server: SERVER_URL}, "hocon contents")
 
@@ -73,27 +74,27 @@ describe("Publish API route", () => {
         expect(init?.method).toBe("POST")
         expect(init?.headers).toMatchObject({"Content-Type": "text/plain"})
         expect(new TextDecoder().decode(init?.body as Uint8Array)).toBe("hocon contents")
-        expect(res._getStatusCode()).toBe(202)
+        expect(res._getStatusCode()).toBe(httpStatus.ACCEPTED)
     })
 
     // DELETE /deployments/{id} - Delete Network
     it("should forward to a server URL that ends in a slash and relay an empty response", async () => {
-        fetchMock.mockResolvedValue(new Response(null, {status: 204}))
+        fetchMock.mockResolvedValue(new Response(null, {status: httpStatus.NO_CONTENT}))
 
         const res = await callProxy("DELETE", {path: ["deployments", "dep-1"], server: `${SERVER_URL}/`})
 
         expect(String(fetchMock.mock.calls[0][0])).toBe(`${SERVER_URL}/deployments/dep-1`)
-        expect(res._getStatusCode()).toBe(204)
+        expect(res._getStatusCode()).toBe(httpStatus.NO_CONTENT)
     })
 
     // GET /health - Health Check. The route doesn't look at the path, so these use the simplest endpoint.
     describe("Health check", () => {
         it("should not exist while publishing is disabled", async () => {
-            vi.stubEnv("ENABLE_PUBLISHING", "false")
+            vi.stubEnv(ENABLE_PUBLISHING_ENV_VAR, "false")
 
             const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
 
-            expect(res._getStatusCode()).toBe(404)
+            expect(res._getStatusCode()).toBe(httpStatus.NOT_FOUND)
             expect(fetchMock).not.toHaveBeenCalled()
         })
 
@@ -104,7 +105,7 @@ describe("Publish API route", () => {
         ])("should refuse a server URL that's $desc", async ({server}) => {
             const res = await callProxy("GET", {path: ["health"], ...(server ? {server} : {})})
 
-            expect(res._getStatusCode()).toBe(400)
+            expect(res._getStatusCode()).toBe(httpStatus.BAD_REQUEST)
             expect(fetchMock).not.toHaveBeenCalled()
         })
 
@@ -113,7 +114,7 @@ describe("Publish API route", () => {
 
             const res = await callProxy("GET", {path: ["health"], server: SERVER_URL})
 
-            expect(res._getStatusCode()).toBe(502)
+            expect(res._getStatusCode()).toBe(httpStatus.BAD_GATEWAY)
             expect(res._getJSONData().detail).toContain("getaddrinfo ENOTFOUND")
         })
     })

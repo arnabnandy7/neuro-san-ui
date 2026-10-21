@@ -22,7 +22,6 @@ import {ConfirmationModal} from "../../Common/ConfirmationModal"
 export const PUBLIC_ACCESS_WARNING = "Anyone with the link can see and use it. There's no sign-in or access control."
 
 interface PublishConfirmationProps {
-    /** The network's name as people read it */
     readonly displayName: string
     readonly id: string
     readonly onCancel: () => void

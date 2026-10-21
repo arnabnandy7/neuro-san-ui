@@ -49,7 +49,7 @@ import {
     SPARKLE_HIGHLIGHT_CLASS,
 } from "../../../../components/MultiAgentAccelerator/Sidebar/Sidebar"
 import {testConnection, TestConnectionResult} from "../../../../controller/agent/Agent"
-import {findPublishedNetwork, publishNetwork} from "../../../../controller/publish/Publish"
+import {listPublishedNetworks, publishNetwork} from "../../../../controller/publish/Publish"
 import {NetworkIconSuggestions} from "../../../../controller/Types/NetworkIconSuggestions"
 import {AgentInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
@@ -637,19 +637,43 @@ describe("SideBar", () => {
         const LIVE_URL = "http://live.test/temporary_network"
         const SERVER_URL = "https://publish.test"
 
-        const renderWithTemporaryNetwork = () =>
+        const renderWithTemporaryNetwork = (temporaryNetwork = TEMPORARY_NETWORK) =>
             renderSidebarComponent({
                 networks: [...LIST_NETWORKS_RESPONSE],
-                temporaryNetworks: [TEMPORARY_NETWORK],
+                temporaryNetworks: [temporaryNetwork],
                 newlyAddedTemporaryNetworks: new Set([TEMPORARY_NETWORK.agentInfo.agent_name]),
+            })
+
+        const EXPIRED_TEMPORARY_NETWORK = {
+            ...TEMPORARY_NETWORK,
+            reservation: {
+                ...TEMPORARY_NETWORK.reservation,
+                expiration_time_in_seconds: Math.floor(Date.now() / 1000) - 3600,
+            },
+        }
+
+        const markLive = () =>
+            usePublishStore.setState({
+                networks: {
+                    [TEMPORARY_NETWORK.agentInfo.agent_name]: {
+                        publishId: "dep-123",
+                        serverUrl: SERVER_URL,
+                        status: PublishStatus.Published,
+                        url: LIVE_URL,
+                    },
+                },
             })
 
         beforeEach(() => {
             useEnvironmentStore.getState().setEnablePublishing(true)
             useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: "cailville"}})
-            usePublishStore.setState({networks: {}})
-            vi.mocked(findPublishedNetwork).mockResolvedValue(null)
-            vi.mocked(publishNetwork).mockResolvedValue({id: "dep-123", url: LIVE_URL})
+            usePublishStore.setState(usePublishStore.getInitialState())
+            vi.mocked(listPublishedNetworks).mockResolvedValue([])
+            vi.mocked(publishNetwork).mockResolvedValue({
+                id: "dep-123",
+                name: TEMPORARY_NETWORK.agentNetworkName,
+                url: LIVE_URL,
+            })
             vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         })
 
@@ -703,17 +727,26 @@ describe("SideBar", () => {
             expect(publishButton).toBeDisabled()
         })
 
+        it("Should not offer to publish an expired temporary network", async () => {
+            renderWithTemporaryNetwork(EXPIRED_TEMPORARY_NETWORK)
+
+            const expiredButton = await screen.findByRole("button", {name: "Expired"})
+
+            expect(expiredButton).toBeDisabled()
+        })
+
+        it("Should still open the live site of an expired temporary network", async () => {
+            markLive()
+            renderWithTemporaryNetwork(EXPIRED_TEMPORARY_NETWORK)
+            const viewLiveButton = await screen.findByRole("button", {name: "View live"})
+
+            await user.click(viewLiveButton)
+
+            expect(window.open).toHaveBeenCalledWith(LIVE_URL, "_blank")
+        })
+
         it("Should open the live site once the temporary network is live", async () => {
-            usePublishStore.setState({
-                networks: {
-                    [TEMPORARY_NETWORK.agentInfo.agent_name]: {
-                        publishId: "dep-123",
-                        serverUrl: SERVER_URL,
-                        status: PublishStatus.Published,
-                        url: LIVE_URL,
-                    },
-                },
-            })
+            markLive()
             renderWithTemporaryNetwork()
             const viewLiveButton = await screen.findByRole("button", {name: "View live"})
 

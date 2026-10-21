@@ -22,10 +22,9 @@ import ButtonGroup from "@mui/material/ButtonGroup"
 import CircularProgress from "@mui/material/CircularProgress"
 import Popover from "@mui/material/Popover"
 import Tooltip from "@mui/material/Tooltip"
-import {FC, ReactNode, useEffect, useState} from "react"
+import {FC, ReactNode, useState} from "react"
 
 import {
-    checkIfPublished,
     openInNewTab,
     publish,
     PUBLISH_SETTINGS_REQUIRED_MESSAGE,
@@ -35,8 +34,8 @@ import {
 } from "./Publish"
 import {PublishConfirmation} from "./PublishConfirmation"
 import {PublishPanel} from "./PublishPanel"
-import {Published, PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
-import {useSettingsStore} from "../../../state/Settings"
+import {usePublishTarget} from "./usePublishTarget"
+import {Published, PublishStatus, usePublishStore} from "../../../state/Publish"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
 
 export const SHOW_DETAILS_LABEL = "Show publish details"
@@ -44,12 +43,9 @@ export const SHOW_DETAILS_LABEL = "Show publish details"
 interface PublishButtonProps {
     /** The network's name as people read it, for the confirmation */
     readonly displayName: string
-    /** The network's HOCON, the same file Download gives */
     readonly hocon: string
     readonly id: string
-    /** The network's id in the app */
     readonly networkId: string
-    /** The agent network name, which it's published under */
     readonly networkName: string
 }
 
@@ -66,9 +62,7 @@ interface MainAction {
  */
 export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkId, networkName}) => {
     const publishState = usePublishStore((state) => state.networks[networkId])
-    const serverUrl = usePublishServerUrl()
-    const orgName = useSettingsStore((state) => state.settings.publish.orgName)
-    const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
+    const target = usePublishTarget(networkId, networkName)
 
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
     const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false)
@@ -76,14 +70,6 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
     const [isUnpublishing, setIsUnpublishing] = useState(false)
     // The live network waiting on the user to confirm unpublishing it
     const [networkToUnpublish, setNetworkToUnpublish] = useState<Published | null>(null)
-
-    // We only remember published networks in memory, so ask the server whether this one is live, for example after a
-    // reload
-    useEffect(() => {
-        if (serverUrl && orgName) {
-            void checkIfPublished({id: networkId, name: networkName}, {serverUrl, orgName})
-        }
-    }, [networkId, networkName, orgName, serverUrl])
 
     const network: PublishNetwork = {id: networkId, name: networkName}
 
@@ -141,8 +127,7 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
                 id={id}
                 ref={setAnchorEl}
                 size="small"
-                // The theme's contrast text on the green success color is dark, so enabled buttons get white text, and
-                // icons follow the text color instead of the app's global icon color
+                // White text on green (the theme's contrast text is dark there), and icons that follow the text color
                 sx={{
                     "& .MuiButton-root:not(.Mui-disabled)": {color: "common.white"},
                     "& .MuiSvgIcon-root": {color: "inherit"},

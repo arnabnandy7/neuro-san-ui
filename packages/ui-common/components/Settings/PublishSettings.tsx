@@ -114,7 +114,6 @@ export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
     const savedServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl) ?? ""
     const savedOrgName = useSettingsStore((state) => state.settings.publish.orgName) ?? ""
     const defaultServerUrl = useEnvironmentStore((state) => state.publishServerUrl) ?? ""
-    // The server in use: the one saved in Settings, otherwise the default from the environment
     const effectiveServerUrl = savedServerUrl || defaultServerUrl
 
     const [protocol, setProtocol] = useState<Protocol>(effectiveServerUrl.startsWith("http://") ? "http" : "https")

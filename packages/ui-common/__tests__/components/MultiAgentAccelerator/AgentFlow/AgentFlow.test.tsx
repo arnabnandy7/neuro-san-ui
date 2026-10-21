@@ -29,7 +29,7 @@ import {
     filterNodeEvents,
 } from "../../../../components/MultiAgentAccelerator/AgentFlow/AgentFlow"
 import {ThoughtBubbleEdgeShape} from "../../../../components/MultiAgentAccelerator/ThoughtBubbles/ThoughtBubbleEdge"
-import {findPublishedNetwork} from "../../../../controller/publish/Publish"
+import {listPublishedNetworks} from "../../../../controller/publish/Publish"
 import {ChatMessageType, ConnectivityInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
 import {useSettingsStore} from "../../../../state/Settings"
@@ -1721,7 +1721,7 @@ describe("AgentFlow", () => {
             useSettingsStore.getState().updateSettings({publish: {serverUrl: "https://publish.test", orgName: "org"}})
             useEnvironmentStore.getState().setEnablePublishing(true)
             useEnvironmentStore.setState({publishServerUrl: null})
-            vi.mocked(findPublishedNetwork).mockResolvedValue(null)
+            vi.mocked(listPublishedNetworks).mockResolvedValue([])
         })
 
         it("Should offer to publish a temporary network", async () => {

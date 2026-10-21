@@ -14,19 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Publish, unpublish, and check whether a network is published. Each updates the publish store, which is what the
- * Publish button and sidebar badge show.
- */
-
-import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../controller/publish/Publish"
+import {listPublishedNetworks, publishNetwork, unpublishNetwork} from "../../../controller/publish/Publish"
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publish"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
     "Add a publish server and org name in Settings > External Services to publish"
-export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
-export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
+export const PUBLISHED_MESSAGE = "Published and opened in a new tab"
+export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published. Click View live to open it."
 
 /** Where networks are published, from Settings */
 export interface PublishTarget {
@@ -34,7 +29,6 @@ export interface PublishTarget {
     readonly orgName: string
 }
 
-/** The network being published */
 export interface PublishNetwork {
     /** The network's id in the app, which the publish store is keyed by */
     readonly id: string
@@ -61,21 +55,31 @@ export const openInNewTab = (url: string): boolean => {
  * nothing if we already know the network's publish state.
  */
 export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgName}: PublishTarget): Promise<void> => {
-    if (usePublishStore.getState().networks[network.id]) return
+    const {networks, publishedList, setPublishedList} = usePublishStore.getState()
+    if (networks[network.id]) return
+
+    // Every network on screen asks, so they share one request for the org's list
+    const key = `${serverUrl} ${orgName}`
+    let request = publishedList?.key === key ? publishedList.request : null
+    if (!request) {
+        request = listPublishedNetworks(serverUrl, orgName)
+        setPublishedList({key, request})
+    }
 
     try {
-        const ready = await findPublishedNetwork(serverUrl, orgName, network.name)
+        const published = (await request).find((candidate) => candidate.name === network.name)
 
         // Don't overwrite a publish the user started while we were asking
-        if (!ready || usePublishStore.getState().networks[network.id]) return
+        if (!published || usePublishStore.getState().networks[network.id]) return
 
         usePublishStore.getState().setPublishState(network.id, {
             status: PublishStatus.Published,
             serverUrl,
-            publishId: ready.id,
-            url: ready.url,
+            publishId: published.id,
+            url: published.url,
         })
     } catch (e) {
+        setPublishedList(null)
         console.warn(`Unable to check whether "${network.name}" is published:`, e)
     }
 }
@@ -110,7 +114,10 @@ export const publish = async (
 export const unpublish = async (network: PublishNetwork, published: Published): Promise<void> => {
     try {
         await unpublishNetwork(published.serverUrl, published.publishId)
-        usePublishStore.getState().clearPublishState(network.id)
+        // The shared list still has it as live, so drop the list too
+        const {clearPublishState, setPublishedList} = usePublishStore.getState()
+        clearPublishState(network.id)
+        setPublishedList(null)
     } catch (e) {
         sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))
     }

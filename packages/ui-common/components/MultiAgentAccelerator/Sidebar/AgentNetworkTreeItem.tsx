@@ -214,7 +214,7 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
                             <Box sx={{display: "flex", alignItems: "center", gap: "0.25rem", marginLeft: "auto"}}>
                                 {showPublishButton && (
                                     <PublishIconButton
-                                        disabled={isExpired}
+                                        isExpired={isExpired}
                                         displayName={item.displayName}
                                         hocon={networkHocon}
                                         id={`${itemId}-publish`}

@@ -1,7 +1,7 @@
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {
     checkHealth,
-    findPublishedNetwork,
+    listPublishedNetworks,
     publishNetwork,
     unpublishNetwork,
 } from "../../../../controller/publish/Publish"
@@ -79,11 +79,11 @@ describe("Publish", () => {
         fetchMock
             .mockResolvedValueOnce(Response.json({id: PUBLISH_ID, status: "queued"}, {status: 202}))
             .mockResolvedValueOnce(new Response(null, {status: 504}))
-            .mockResolvedValueOnce(Response.json({id: PUBLISH_ID, status: "ready", url: LIVE_URL}))
+            .mockResolvedValueOnce(Response.json({id: PUBLISH_ID, name: NETWORK_NAME, status: "ready", url: LIVE_URL}))
 
         const ready = await create()
 
-        expect(ready).toEqual({id: PUBLISH_ID, url: LIVE_URL})
+        expect(ready).toEqual({id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL})
         expect(fetchMock).toHaveBeenCalledTimes(3)
         expect(fetchMock.mock.calls[1][0]).toContain(`/api/publish/deployments/${PUBLISH_ID}/wait?`)
     })
@@ -128,7 +128,7 @@ describe("Publish", () => {
     })
 
     // GET /deployments
-    it("should find the live network with this name in our org", async () => {
+    it("should list only our org's live networks", async () => {
         fetchMock.mockResolvedValue(
             Response.json({
                 capacity: {},
@@ -152,14 +152,14 @@ describe("Publish", () => {
             })
         )
 
-        const ready = await findPublishedNetwork(SERVER_URL, ORG_NAME, NETWORK_NAME)
+        const published = await listPublishedNetworks(SERVER_URL, ORG_NAME)
 
         expect(fetchMock.mock.calls[0][0]).toBe(`/api/publish/deployments?server=${encodeURIComponent(SERVER_URL)}`)
-        expect(ready).toEqual({id: PUBLISH_ID, url: LIVE_URL})
+        expect(published).toEqual([{id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL}])
     })
 
     // GET /deployments
-    it("should find nothing when there's no live network with this name in our org", async () => {
+    it("should list nothing when our org has no live networks", async () => {
         fetchMock.mockResolvedValue(
             Response.json({
                 capacity: {},
@@ -167,7 +167,7 @@ describe("Publish", () => {
             })
         )
 
-        await expect(findPublishedNetwork(SERVER_URL, ORG_NAME, NETWORK_NAME)).resolves.toBeNull()
+        await expect(listPublishedNetworks(SERVER_URL, ORG_NAME)).resolves.toEqual([])
     })
 
     // DELETE /deployments/{id}

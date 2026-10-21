@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import httpStatus from "http-status"
 import {NextApiRequest, NextApiResponse} from "next"
 
 import {ENABLE_PUBLISHING_ENV_VAR, PUBLISH_BEARER_TOKEN_ENV_VAR} from "../../../Const"
@@ -51,7 +52,7 @@ const parseServerUrl = (server: string | string[] | undefined): URL | null => {
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (process.env[ENABLE_PUBLISHING_ENV_VAR] !== "true") {
-        res.status(404).json({detail: "Publishing is not enabled"})
+        res.status(httpStatus.NOT_FOUND).json({detail: "Publishing is not enabled"})
         return
     }
 
@@ -64,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const serverUrl = parseServerUrl(server)
     if (!serverUrl) {
-        res.status(400).json({detail: "Missing or invalid publish server URL"})
+        res.status(httpStatus.BAD_REQUEST).json({detail: "Missing or invalid publish server URL"})
         return
     }
 
@@ -93,6 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         res.status(upstream.status).send(Buffer.from(await upstream.arrayBuffer()))
     } catch (e) {
-        res.status(502).json({detail: `Couldn't reach the publish server: ${String(e)}`})
+        res.status(httpStatus.BAD_GATEWAY).json({detail: `Couldn't reach the publish server: ${String(e)}`})
     }
 }

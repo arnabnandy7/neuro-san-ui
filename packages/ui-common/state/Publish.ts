@@ -18,6 +18,7 @@ import {create} from "zustand"
 
 import {useEnvironmentStore} from "./Environment"
 import {useSettingsStore} from "./Settings"
+import {PublishedNetwork} from "../controller/publish/Publish"
 
 export enum PublishStatus {
     Publishing = "Publishing",
@@ -39,6 +40,13 @@ export interface Published {
 
 export type PublishState = Publishing | Published
 
+/** The org's published networks on a server, as one request every network can share */
+interface PublishedList {
+    /** Which server and org the list is for */
+    readonly key: string
+    readonly request: Promise<PublishedNetwork[]>
+}
+
 /**
  * Zustand state store for networks that are publishing or live, keyed by network id. Kept in memory only.
  */
@@ -46,13 +54,14 @@ interface PublishStore {
     readonly networks: Readonly<Record<string, PublishState>>
     readonly setPublishState: (networkId: string, publishState: PublishState) => void
     readonly clearPublishState: (networkId: string) => void
+    readonly publishedList: PublishedList | null
+    readonly setPublishedList: (publishedList: PublishedList | null) => void
 }
 
-/**
- * The hook that lets apps use the store.
- */
 export const usePublishStore = create<PublishStore>()((set) => ({
     networks: {},
+    publishedList: null,
+    setPublishedList: (publishedList) => set({publishedList}),
     setPublishState: (networkId, publishState) =>
         set(({networks}) => ({networks: {...networks, [networkId]: publishState}})),
     clearPublishState: (networkId) =>

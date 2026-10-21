@@ -12,7 +12,7 @@ import {
 import {PublishButton, SHOW_DETAILS_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
 import {PUBLIC_ACCESS_WARNING} from "../../../../components/MultiAgentAccelerator/Publish/PublishConfirmation"
 import {
-    findPublishedNetwork,
+    listPublishedNetworks,
     PublishedNetwork,
     publishNetwork,
     unpublishNetwork,
@@ -49,7 +49,7 @@ describe("PublishButton", () => {
     let user: UserEvent
     let openSpy: MockInstance<typeof window.open>
 
-    const makePublishedNetwork = (): PublishedNetwork => ({id: PUBLISH_ID, url: LIVE_URL})
+    const makePublishedNetwork = (): PublishedNetwork => ({id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL})
 
     /**
      * Keeps the publish in flight until the returned `release()` is called, which then succeeds.
@@ -116,25 +116,25 @@ describe("PublishButton", () => {
     beforeEach(() => {
         user = userEvent.setup()
         openSpy = vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
-        usePublishStore.setState({networks: {}})
+        usePublishStore.setState(usePublishStore.getInitialState())
         useSettingsStore.getState().resetSettings()
         useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
 
         mockPublishNetwork.mockResolvedValue(makePublishedNetwork())
         vi.mocked(unpublishNetwork).mockResolvedValue()
-        vi.mocked(findPublishedNetwork).mockResolvedValue(null)
+        vi.mocked(listPublishedNetworks).mockResolvedValue([])
     })
 
     it("should offer to publish a network that isn't published", async () => {
         renderPublishButton()
 
-        await waitFor(() => expect(findPublishedNetwork).toHaveBeenCalledWith(SERVER_URL, ORG_NAME, NETWORK_NAME))
+        await waitFor(() => expect(listPublishedNetworks).toHaveBeenCalledWith(SERVER_URL, ORG_NAME))
         screen.getByRole("button", {name: "Publish"})
         expect(screen.queryByRole("button", {name: SHOW_DETAILS_LABEL})).not.toBeInTheDocument()
     })
 
     it("should show View live for a network the server already has live, without publishing again", async () => {
-        vi.mocked(findPublishedNetwork).mockResolvedValue(makePublishedNetwork())
+        vi.mocked(listPublishedNetworks).mockResolvedValue([makePublishedNetwork()])
         renderPublishButton()
 
         await screen.findByRole("button", {name: "View live"})
@@ -146,11 +146,35 @@ describe("PublishButton", () => {
 
     it("should stay on Publish when the server can't be asked whether the network is live", async () => {
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())
-        vi.mocked(findPublishedNetwork).mockRejectedValue(new Error(SERVER_ERROR))
+        vi.mocked(listPublishedNetworks).mockRejectedValue(new Error(SERVER_ERROR))
         renderPublishButton()
 
         await waitFor(() => expect(warnSpy).toHaveBeenCalled())
         screen.getByRole("button", {name: "Publish"})
+    })
+
+    it("should ask the server once when several networks check whether they're live", async () => {
+        render(
+            <>
+                <PublishButton
+                    displayName={DISPLAY_NAME}
+                    hocon={HOCON}
+                    id="first-publish-button"
+                    networkId="first-network-id"
+                    networkName="first_network"
+                />
+                <PublishButton
+                    displayName={DISPLAY_NAME}
+                    hocon={HOCON}
+                    id="second-publish-button"
+                    networkId="second-network-id"
+                    networkName="second_network"
+                />
+            </>
+        )
+
+        await waitFor(() => expect(screen.getAllByRole("button", {name: "Publish"})).toHaveLength(2))
+        expect(listPublishedNetworks).toHaveBeenCalledTimes(1)
     })
 
     it("should ask before publishing, naming the network, server and org, and warning it'll be public", async () => {

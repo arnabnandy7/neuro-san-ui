@@ -256,7 +256,6 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     // Read temporary networks to find agent_network_definition for the currently selected network.
     const tempNetworks = useTempNetworksStore((state) => state.tempNetworks)
 
-    // Publishing is only offered once there's a publish server, from the environment or Settings
     const publishServerUrl = usePublishServerUrl()
 
     const currentTempNetwork = useMemo(
