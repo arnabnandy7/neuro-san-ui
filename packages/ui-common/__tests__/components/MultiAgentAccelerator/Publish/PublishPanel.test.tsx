@@ -2,11 +2,11 @@ import {render, screen, waitForElementToBeRemoved} from "@testing-library/react"
 import {userEvent} from "@testing-library/user-event"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
-import {COPY_URL_LABEL, OPEN_URL_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/LiveUrlField"
+import {COPY_URL_LABEL, OPEN_URL_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/PublishedNetworkUrl"
 import {PublishPanel} from "../../../../components/MultiAgentAccelerator/Publish/PublishPanel"
 import {PublishState, PublishStatus} from "../../../../state/Publish"
 
-const LIVE_URL = "http://live.test/cailville_bakery"
+const PUBLISHED_URL = "http://live.test/cailville_bakery"
 
 const renderPanel = (publishState: PublishState) =>
     render(
@@ -18,11 +18,11 @@ const renderPanel = (publishState: PublishState) =>
         />
     )
 
-const makeLiveNetwork = (): PublishState => ({
+const makePublishedNetwork = (): PublishState => ({
     publishId: "dep-123",
     serverUrl: "https://publish.test",
     status: PublishStatus.Published,
-    url: LIVE_URL,
+    url: PUBLISHED_URL,
 })
 
 describe("PublishPanel", () => {
@@ -30,12 +30,12 @@ describe("PublishPanel", () => {
 
     it("should copy the live URL, say Copied, then go back to offering to copy", async () => {
         const user = userEvent.setup()
-        renderPanel(makeLiveNetwork())
+        renderPanel(makePublishedNetwork())
         const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
 
         await user.click(copyButton)
 
-        expect(await navigator.clipboard.readText()).toBe(LIVE_URL)
+        expect(await navigator.clipboard.readText()).toBe(PUBLISHED_URL)
         await screen.findByRole("tooltip", {name: "Copied"})
 
         await user.unhover(copyButton)
@@ -48,7 +48,7 @@ describe("PublishPanel", () => {
     it("should say it couldn't copy when the clipboard refuses", async () => {
         const user = userEvent.setup()
         vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("Clipboard blocked"))
-        renderPanel(makeLiveNetwork())
+        renderPanel(makePublishedNetwork())
         const copyButton = screen.getByRole("button", {name: COPY_URL_LABEL})
 
         await user.click(copyButton)
@@ -57,11 +57,11 @@ describe("PublishPanel", () => {
     })
 
     it("should link to the live URL in a new tab", () => {
-        renderPanel(makeLiveNetwork())
+        renderPanel(makePublishedNetwork())
 
         const openLink = screen.getByRole("link", {name: OPEN_URL_LABEL})
 
-        expect(openLink).toHaveAttribute("href", LIVE_URL)
+        expect(openLink).toHaveAttribute("href", PUBLISHED_URL)
         expect(openLink).toHaveAttribute("target", "_blank")
     })
 

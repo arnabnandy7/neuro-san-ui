@@ -11,7 +11,7 @@ const NETWORK_NAME = "cailville_bakery"
 const ORG_NAME = "cailville"
 const HOCON = "{ tools: [] }"
 const PUBLISH_ID = "dep-123"
-const LIVE_URL = "https://publish.test/sites/cailville_bakery"
+const PUBLISHED_URL = "https://publish.test/sites/cailville_bakery"
 
 // Covers each publish server endpoint the client calls. The comment on each test names the endpoints it exercises.
 describe("Publish", () => {
@@ -48,7 +48,7 @@ describe("Publish", () => {
 
     // POST /deployments
     it("should upload the HOCON with its name and the org name", async () => {
-        fetchMock.mockResolvedValue(Response.json({id: PUBLISH_ID, status: "ready", url: LIVE_URL}, {status: 202}))
+        fetchMock.mockResolvedValue(Response.json({id: PUBLISH_ID, status: "ready", url: PUBLISHED_URL}, {status: 202}))
 
         await create()
 
@@ -65,7 +65,7 @@ describe("Publish", () => {
 
     // POST /deployments
     it("should ask for a themed site that keeps its existing theme", async () => {
-        fetchMock.mockResolvedValue(Response.json({id: PUBLISH_ID, status: "ready", url: LIVE_URL}, {status: 202}))
+        fetchMock.mockResolvedValue(Response.json({id: PUBLISH_ID, status: "ready", url: PUBLISHED_URL}, {status: 202}))
 
         await create()
 
@@ -79,11 +79,13 @@ describe("Publish", () => {
         fetchMock
             .mockResolvedValueOnce(Response.json({id: PUBLISH_ID, status: "queued"}, {status: 202}))
             .mockResolvedValueOnce(new Response(null, {status: 504}))
-            .mockResolvedValueOnce(Response.json({id: PUBLISH_ID, name: NETWORK_NAME, status: "ready", url: LIVE_URL}))
+            .mockResolvedValueOnce(
+                Response.json({id: PUBLISH_ID, name: NETWORK_NAME, status: "ready", url: PUBLISHED_URL})
+            )
 
         const ready = await create()
 
-        expect(ready).toEqual({id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL})
+        expect(ready).toEqual({id: PUBLISH_ID, name: NETWORK_NAME, url: PUBLISHED_URL})
         expect(fetchMock).toHaveBeenCalledTimes(3)
         expect(fetchMock.mock.calls[1][0]).toContain(`/api/publish/deployments/${PUBLISH_ID}/wait?`)
     })
@@ -146,7 +148,7 @@ describe("Publish", () => {
                         name: NETWORK_NAME,
                         org_name: ORG_NAME,
                         status: "ready",
-                        url: LIVE_URL,
+                        url: PUBLISHED_URL,
                     },
                 ],
             })
@@ -155,7 +157,7 @@ describe("Publish", () => {
         const published = await listPublishedNetworks(SERVER_URL, ORG_NAME)
 
         expect(fetchMock.mock.calls[0][0]).toBe(`/api/publish/deployments?server=${encodeURIComponent(SERVER_URL)}`)
-        expect(published).toEqual([{id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL}])
+        expect(published).toEqual([{id: PUBLISH_ID, name: NETWORK_NAME, url: PUBLISHED_URL}])
     })
 
     // GET /deployments

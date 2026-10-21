@@ -33,14 +33,14 @@ const COPY_TOOLTIPS = {
 
 type CopyStatus = keyof typeof COPY_TOOLTIPS
 
-interface LiveUrlFieldProps {
+interface PublishedNetworkUrlProps {
     readonly url: string
 }
 
 /**
  * Read-only display of a published network's URL, with icons to copy it or open it in a new tab.
  */
-export const LiveUrlField: FC<LiveUrlFieldProps> = ({url}) => {
+export const PublishedNetworkUrl: FC<PublishedNetworkUrlProps> = ({url}) => {
     const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
 
     const handleCopy = async () => {

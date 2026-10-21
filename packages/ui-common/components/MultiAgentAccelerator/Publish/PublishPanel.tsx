@@ -21,7 +21,7 @@ import LinearProgress from "@mui/material/LinearProgress"
 import Typography from "@mui/material/Typography"
 import {FC} from "react"
 
-import {LiveUrlField} from "./LiveUrlField"
+import {PublishedNetworkUrl} from "./PublishedNetworkUrl"
 import {Published, PublishState, PublishStatus} from "../../../state/Publish"
 import {StatusLight} from "../../Common/StatusLight"
 
@@ -46,7 +46,7 @@ export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpub
                     <StatusLight statusValue="green" />
                     <Typography sx={{fontWeight: 600}}>Live</Typography>
                 </Box>
-                <LiveUrlField url={publishState.url} />
+                <PublishedNetworkUrl url={publishState.url} />
                 <Divider />
                 <Button
                     disabled={isUnpublishing}

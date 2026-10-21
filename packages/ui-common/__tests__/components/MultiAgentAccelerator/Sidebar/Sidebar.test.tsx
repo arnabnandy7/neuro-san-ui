@@ -634,7 +634,7 @@ describe("SideBar", () => {
     })
 
     describe("Publishing from the sidebar", () => {
-        const LIVE_URL = "http://live.test/temporary_network"
+        const PUBLISHED_URL = "http://live.test/temporary_network"
         const SERVER_URL = "https://publish.test"
 
         const renderWithTemporaryNetwork = (temporaryNetwork = TEMPORARY_NETWORK) =>
@@ -659,7 +659,7 @@ describe("SideBar", () => {
                         publishId: "dep-123",
                         serverUrl: SERVER_URL,
                         status: PublishStatus.Published,
-                        url: LIVE_URL,
+                        url: PUBLISHED_URL,
                     },
                 },
             })
@@ -672,7 +672,7 @@ describe("SideBar", () => {
             vi.mocked(publishNetwork).mockResolvedValue({
                 id: "dep-123",
                 name: TEMPORARY_NETWORK.agentNetworkName,
-                url: LIVE_URL,
+                url: PUBLISHED_URL,
             })
             vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
         })
@@ -742,7 +742,7 @@ describe("SideBar", () => {
 
             await user.click(viewLiveButton)
 
-            expect(window.open).toHaveBeenCalledWith(LIVE_URL, "_blank")
+            expect(window.open).toHaveBeenCalledWith(PUBLISHED_URL, "_blank")
         })
 
         it("Should open the live site once the temporary network is live", async () => {
@@ -752,7 +752,7 @@ describe("SideBar", () => {
 
             await user.click(viewLiveButton)
 
-            expect(window.open).toHaveBeenCalledWith(LIVE_URL, "_blank")
+            expect(window.open).toHaveBeenCalledWith(PUBLISHED_URL, "_blank")
             expect(setSelectedNetworkMock).not.toHaveBeenCalled()
         })
 

@@ -50,7 +50,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
     networkName,
 }) => {
     const publishStatus = usePublishStore((state) => state.networks[networkId]?.status)
-    const liveUrl = usePublishStore((state) => {
+    const publishedUrl = usePublishStore((state) => {
         const publishState = state.networks[networkId]
         return publishState?.status === PublishStatus.Published ? publishState.url : null
     })
@@ -59,7 +59,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
 
     const getLabel = () => {
-        if (liveUrl) return "View live"
+        if (publishedUrl) return "View live"
         if (publishStatus === PublishStatus.Publishing) return "Publishing..."
         if (isExpired) return "Expired"
         return target ? "Publish" : PUBLISH_SETTINGS_REQUIRED_MESSAGE
@@ -75,12 +75,12 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                 <span>
                     <IconButton
                         aria-label={label}
-                        disabled={isPublishing || (!liveUrl && (isExpired || !target))}
+                        disabled={isPublishing || (!publishedUrl && (isExpired || !target))}
                         id={id}
                         onClick={(e) => {
                             e.stopPropagation()
-                            if (liveUrl) {
-                                openInNewTab(liveUrl)
+                            if (publishedUrl) {
+                                openInNewTab(publishedUrl)
                             } else {
                                 setIsConfirmOpen(true)
                             }
@@ -100,7 +100,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                             />
                         ) : (
                             // Colored on the icon itself, since the app's global CSS colors icons inside buttons
-                            <PublicIcon sx={{fontSize: "0.75rem", ...(liveUrl && {color: "success.main"})}} />
+                            <PublicIcon sx={{fontSize: "0.75rem", ...(publishedUrl && {color: "success.main"})}} />
                         )}
                     </IconButton>
                 </span>

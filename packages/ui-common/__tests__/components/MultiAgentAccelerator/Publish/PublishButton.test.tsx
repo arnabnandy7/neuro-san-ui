@@ -25,7 +25,7 @@ import {useSettingsStore} from "../../../../state/Settings"
 const PUBLISH_ID = "dep-123"
 const DISPLAY_NAME = "Cailville Bakery"
 const HOCON = "{ tools: [] }"
-const LIVE_URL = "http://live.test/cailville_bakery"
+const PUBLISHED_URL = "http://live.test/cailville_bakery"
 const NETWORK_ID = "cailville_bakery-1f2e3d4c"
 const NETWORK_NAME = "cailville_bakery"
 const ORG_NAME = "cailville"
@@ -49,7 +49,7 @@ describe("PublishButton", () => {
     let user: UserEvent
     let openSpy: MockInstance<typeof window.open>
 
-    const makePublishedNetwork = (): PublishedNetwork => ({id: PUBLISH_ID, name: NETWORK_NAME, url: LIVE_URL})
+    const makePublishedNetwork = (): PublishedNetwork => ({id: PUBLISH_ID, name: NETWORK_NAME, url: PUBLISHED_URL})
 
     /**
      * Keeps the publish in flight until the returned `release()` is called, which then succeeds.
@@ -140,7 +140,7 @@ describe("PublishButton", () => {
         await screen.findByRole("button", {name: "View live"})
         await openDetails()
 
-        screen.getByText(LIVE_URL)
+        screen.getByText(PUBLISHED_URL)
         expect(mockPublishNetwork).not.toHaveBeenCalled()
     })
 
@@ -253,7 +253,7 @@ describe("PublishButton", () => {
 
         await publishAndWaitUntilLive()
 
-        expect(openSpy).toHaveBeenCalledWith(LIVE_URL, "_blank")
+        expect(openSpy).toHaveBeenCalledWith(PUBLISHED_URL, "_blank")
         expect(sendNotification).toHaveBeenCalledWith(
             NotificationType.success,
             PUBLISHED_MESSAGE,
@@ -284,7 +284,7 @@ describe("PublishButton", () => {
 
         await user.click(viewLiveButton)
 
-        expect(openSpy).toHaveBeenCalledWith(LIVE_URL, "_blank")
+        expect(openSpy).toHaveBeenCalledWith(PUBLISHED_URL, "_blank")
     })
 
     it("should show the live URL in the details", async () => {
@@ -293,7 +293,7 @@ describe("PublishButton", () => {
 
         await openDetails()
 
-        screen.getByText(LIVE_URL)
+        screen.getByText(PUBLISHED_URL)
     })
 
     it("should reopen the progress panel when Publishing... is clicked", async () => {
@@ -320,7 +320,7 @@ describe("PublishButton", () => {
         await clickUnpublish()
 
         const confirmation = await screen.findByRole("dialog")
-        expect(confirmation).toHaveTextContent(`"${DISPLAY_NAME}" will be taken offline at ${LIVE_URL}`)
+        expect(confirmation).toHaveTextContent(`"${DISPLAY_NAME}" will be taken offline at ${PUBLISHED_URL}`)
         expect(unpublishNetwork).not.toHaveBeenCalled()
     })
 
