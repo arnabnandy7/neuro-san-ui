@@ -37,7 +37,7 @@ describe("PublishServer", () => {
     })
 
     // GET /health
-    it("should check the server's health through our proxy", async () => {
+    it("should check the server's health through our /api/publish route", async () => {
         fetchMock.mockResolvedValue(Response.json({status: "ok"}))
 
         const result = await checkHealth(SERVER_URL)

@@ -23,7 +23,7 @@ const SERVER_URL = "https://publish.test"
 
 // Each test uses one of the publish server endpoints the client calls (see controller/publish/PublishServer.ts). The
 // comment on each test or group names it.
-describe("Publish proxy", () => {
+describe("Publish API route", () => {
     withStrictMocks()
 
     let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>
@@ -86,7 +86,7 @@ describe("Publish proxy", () => {
         expect(res._getStatusCode()).toBe(204)
     })
 
-    // GET /health - Health Check. The proxy doesn't look at the path, so these use the simplest endpoint.
+    // GET /health - Health Check. The route doesn't look at the path, so these use the simplest endpoint.
     describe("Health check", () => {
         it("should not exist while publishing is disabled", async () => {
             vi.stubEnv("ENABLE_PUBLISHING", "false")

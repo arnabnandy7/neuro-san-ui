@@ -69,7 +69,7 @@ const WAIT_TIMEOUT_SECONDS = 60
 
 //#endregion Constants
 
-const proxyUrl = (serverUrl: string, path: string, query: Record<string, string> = {}): string =>
+const publishRouteUrl = (serverUrl: string, path: string, query: Record<string, string> = {}): string =>
     `/api/publish/${path}?${new URLSearchParams({server: serverUrl, ...query})}`
 
 /**
@@ -94,7 +94,7 @@ const throwIfNotOk = async (response: Response, action: string): Promise<void> =
  * Checks that a publish server is up.
  */
 export const checkHealth = (serverUrl: string): Promise<TestConnectionResult> =>
-    testConnection(proxyUrl(serverUrl, "health"))
+    testConnection(publishRouteUrl(serverUrl, "health"))
 
 /**
  * Finds the live network with this name in the org, if there is one.
@@ -104,7 +104,7 @@ export const findPublishedNetwork = async (
     orgName: string,
     networkName: string
 ): Promise<PublishedNetwork | null> => {
-    const response = await fetch(proxyUrl(serverUrl, "deployments"))
+    const response = await fetch(publishRouteUrl(serverUrl, "deployments"))
     await throwIfNotOk(response, "Listing published networks")
     const {deployments: networks}: {deployments: ServerNetwork[]} = await response.json()
 
@@ -128,13 +128,13 @@ export const publishNetwork = async ({
     form.append("name", networkName)
     form.append("org_name", orgName)
 
-    const createResponse = await fetch(proxyUrl(serverUrl, "deployments"), {method: "POST", body: form})
+    const createResponse = await fetch(publishRouteUrl(serverUrl, "deployments"), {method: "POST", body: form})
     await throwIfNotOk(createResponse, "Publishing")
     let network: ServerNetwork = await createResponse.json()
 
     while (network.status === "queued" || network.status === "building") {
         const waitResponse = await fetch(
-            proxyUrl(serverUrl, `deployments/${network.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
+            publishRouteUrl(serverUrl, `deployments/${network.id}/wait`, {timeout: String(WAIT_TIMEOUT_SECONDS)})
         )
         // A timeout means it's still building, so ask again
         if (waitResponse.status !== httpStatus.GATEWAY_TIMEOUT) {
@@ -154,6 +154,6 @@ export const publishNetwork = async ({
  * Takes a published network offline.
  */
 export const unpublishNetwork = async (serverUrl: string, publishId: string): Promise<void> => {
-    const response = await fetch(proxyUrl(serverUrl, `deployments/${publishId}`), {method: "DELETE"})
+    const response = await fetch(publishRouteUrl(serverUrl, `deployments/${publishId}`), {method: "DELETE"})
     await throwIfNotOk(response, "Unpublishing")
 }
