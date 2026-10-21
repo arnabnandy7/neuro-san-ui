@@ -66,11 +66,14 @@ import {addThoughtBubbleEdge, layoutLinear, layoutRadial, LayoutResult} from "./
 import {PlasmaEdge} from "./PlasmaEdge"
 import {AgentIconSuggestions} from "../../../controller/Types/AgentIconSuggestions"
 import {ConnectivityInfo} from "../../../generated/neuro-san/NeuroSanClient"
+import {useEnvironmentStore} from "../../../state/Environment"
+import {usePublishServerUrl} from "../../../state/Publish"
 import {GraphColoringOption, Layout, usePalette, useSettingsStore} from "../../../state/Settings"
 import {useTempNetworksStore} from "../../../state/TemporaryNetworks"
 import {getZIndex} from "../../../utils/zIndexLayers"
 import {AgentNodeEditor} from "../Editor/AgentNodeEditor"
 import {NetworkEditorDock} from "../Editor/NetworkEditorDock"
+import {PublishButton} from "../Publish/PublishButton"
 import {isEditableAgent} from "../TemporaryNetworks"
 import {ThoughtBubbleEdge, ThoughtBubbleEdgeShape} from "../ThoughtBubbles/ThoughtBubbleEdge"
 import {ThoughtBubbleOverlay} from "../ThoughtBubbles/ThoughtBubbleOverlay"
@@ -169,6 +172,8 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     const flowWrapperRef = useRef<HTMLDivElement | null>(null)
     const fitViewFrameRef = useRef<number | null>(null)
 
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
+
     const scheduleFitView = useCallback(() => {
         if (fitViewFrameRef.current !== null) {
             window.cancelAnimationFrame(fitViewFrameRef.current)
@@ -250,6 +255,13 @@ export const AgentFlow: FC<AgentFlowProps> = ({
 
     // Read temporary networks to find agent_network_definition for the currently selected network.
     const tempNetworks = useTempNetworksStore((state) => state.tempNetworks)
+
+    const publishServerUrl = usePublishServerUrl()
+
+    const currentTempNetwork = useMemo(
+        () => (networkId ? tempNetworks.find((n) => n.agentInfo.agent_name === networkId) : undefined),
+        [networkId, tempNetworks]
+    )
 
     // Track conversation IDs we've already processed to prevent re-adding after expiry
     const processedConversationIdsRef = useRef<Set<string>>(new Set())
@@ -447,9 +459,6 @@ export const AgentFlow: FC<AgentFlowProps> = ({
             if (!isEditableAgent(node.data.displayAs)) return
 
             // Find the agent's existing instructions and description from the temp network definition.
-            const currentTempNetwork = networkId
-                ? tempNetworks.find((n) => n.agentInfo.agent_name === networkId)
-                : undefined
             const currentAgentDefinition = currentTempNetwork?.agentNetworkDefinition?.find((e) => e.origin === node.id)
 
             setSelectedAgent({
@@ -460,7 +469,7 @@ export const AgentFlow: FC<AgentFlowProps> = ({
             })
             setIsPopupOpen(true)
         },
-        [tempNetworks, isTemporaryNetwork, networkId]
+        [currentTempNetwork, isTemporaryNetwork]
     )
 
     const handleNodeClick: NodeMouseHandler<RFNode<AgentNodeProps>> = useCallback(
@@ -765,6 +774,12 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     const getTitle = () => {
         if (!networkDisplayName) return null
 
+        const isPublishingSetUp = enablePublishing && Boolean(publishServerUrl)
+        const isViewingNetwork = !isAgentNetworkDesignerMode && !isEditingNetwork
+        const hoconToPublish = currentTempNetwork?.networkHocon
+        const showPublishButton =
+            isPublishingSetUp && isViewingNetwork && currentTempNetwork?.agentNetworkName && hoconToPublish
+
         return (
             <Box
                 id={`${id}-network-title-bar`}
@@ -823,6 +838,17 @@ export const AgentFlow: FC<AgentFlowProps> = ({
                     >
                         Edit
                     </Button>
+                )}
+                {showPublishButton && (
+                    <Box sx={{pointerEvents: "auto"}}>
+                        <PublishButton
+                            displayName={networkDisplayName}
+                            hocon={hoconToPublish}
+                            id={`${id}-publish-button`}
+                            networkId={currentTempNetwork.agentInfo.agent_name}
+                            networkName={currentTempNetwork.agentNetworkName}
+                        />
+                    </Box>
                 )}
             </Box>
         )
