@@ -25,14 +25,15 @@ import Select from "@mui/material/Select"
 import TextField from "@mui/material/TextField"
 import {FC, ReactNode, useState} from "react"
 
-import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
+import {SettingsSubsection} from "./SettingsLayout"
 import {checkHealth} from "../../controller/publish/Publish"
 import {useEnvironmentStore} from "../../state/Environment"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 
-export const PUBLISH_SERVER_HOST_LABEL = "Publish server host"
+export const DEFAULT_PUBLISH_SERVER_LABEL = "Use the default publish server"
 export const ORG_NAME_LABEL = "Org name"
+export const PUBLISH_SERVER_HOST_LABEL = "Publish server host"
 export const SAVE_PUBLISHING_LABEL = "Save publishing settings"
 export const TEST_PUBLISH_SERVER_LABEL = "Test publish server"
 
@@ -105,28 +106,28 @@ interface PublishSettingsProps {
 }
 
 /**
- * "Publishing" section of the Settings dialog: the publish server that networks are published to, and the org name
- * sent with each publish.
+ * "Publish server" part of the External Services section of the Settings dialog: the server that networks are
+ * published to, and the org name sent with each publish.
  */
 export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
     const updateSettings = useSettingsStore((state) => state.updateSettings)
     const savedServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl) ?? ""
     const savedOrgName = useSettingsStore((state) => state.settings.publish.orgName) ?? ""
-    const defaultServerUrl = useEnvironmentStore((state) => state.publishServerUrl)
+    const defaultServerUrl = useEnvironmentStore((state) => state.publishServerUrl) ?? ""
+    // The server in use: the one saved in Settings, otherwise the default from the environment
+    const effectiveServerUrl = savedServerUrl || defaultServerUrl
 
-    const [protocol, setProtocol] = useState<Protocol>(savedServerUrl.startsWith("http://") ? "http" : "https")
-    const [hostInput, setHostInput] = useState(stripProtocol(savedServerUrl))
+    const [protocol, setProtocol] = useState<Protocol>(effectiveServerUrl.startsWith("http://") ? "http" : "https")
+    const [hostInput, setHostInput] = useState(stripProtocol(effectiveServerUrl))
     const [isServerReachable, setIsServerReachable] = useState<boolean | null>(null)
     const [orgNameInput, setOrgNameInput] = useState(savedOrgName)
 
     const normalized = normalizeUrlInput(hostInput, protocol)
     const serverUrl = normalized.host ? `${normalized.protocol}://${normalized.host}` : ""
     const orgName = orgNameInput.trim()
-    // An empty field means the default server
-    const serverToTest = serverUrl || defaultServerUrl
 
-    const isPublishingOn = Boolean((savedServerUrl || defaultServerUrl) && savedOrgName)
-    const hasChanges = serverUrl !== savedServerUrl || orgName !== savedOrgName
+    const isPublishingOn = Boolean(effectiveServerUrl && savedOrgName)
+    const hasChanges = serverUrl !== effectiveServerUrl || orgName !== savedOrgName
 
     const handleHostChange = (host: string) => {
         setHostInput(host)
@@ -134,16 +135,23 @@ export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
     }
 
     const handleTest = async () => {
-        const result = await checkHealth(serverToTest)
+        const result = await checkHealth(serverUrl)
         setIsServerReachable(result.success)
     }
 
-    const handleSave = () => {
-        // Saving an empty server goes back to the default
-        updateSettings({publish: {serverUrl: serverUrl || null, orgName: orgName || null}})
+    const handleDefault = () => {
+        const defaultServer = normalizeUrlInput(defaultServerUrl, "https")
+        handleHostChange(defaultServer.host)
+        setProtocol(defaultServer.protocol)
     }
 
-    const getPublishingSubsection = () => (
+    const handleSave = () => {
+        // Only save a server that differs from the default, so a change to the default still applies
+        const serverOverride = serverUrl && serverUrl !== defaultServerUrl ? serverUrl : null
+        updateSettings({publish: {serverUrl: serverOverride, orgName: orgName || null}})
+    }
+
+    return (
         <SettingsSubsection
             status={
                 isPublishingOn ? (
@@ -157,15 +165,28 @@ export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
             <FieldGrid>
                 <FieldRow
                     action={
-                        <Button
-                            aria-label={TEST_PUBLISH_SERVER_LABEL}
-                            disabled={!serverToTest}
-                            onClick={handleTest}
-                            size="small"
-                            variant="contained"
-                        >
-                            Test
-                        </Button>
+                        <Box sx={{display: "flex", gap: 1}}>
+                            <Button
+                                aria-label={TEST_PUBLISH_SERVER_LABEL}
+                                disabled={!serverUrl}
+                                onClick={handleTest}
+                                size="small"
+                                variant="contained"
+                            >
+                                Test
+                            </Button>
+                            {defaultServerUrl && (
+                                <Button
+                                    aria-label={DEFAULT_PUBLISH_SERVER_LABEL}
+                                    disabled={serverUrl === defaultServerUrl}
+                                    onClick={handleDefault}
+                                    size="small"
+                                    variant="contained"
+                                >
+                                    Default
+                                </Button>
+                            )}
+                        </Box>
                     }
                     field={
                         <TextField
@@ -174,7 +195,7 @@ export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
                                 setProtocol(normalized.protocol)
                             }}
                             onChange={(e) => handleHostChange(e.target.value)}
-                            placeholder={defaultServerUrl ? stripProtocol(defaultServerUrl) : "publish.example.com"}
+                            placeholder="publish.example.com"
                             size="small"
                             slotProps={{
                                 htmlInput: {"aria-label": PUBLISH_SERVER_HOST_LABEL},
@@ -259,12 +280,5 @@ export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
                 </Button>
             </Box>
         </SettingsSubsection>
-    )
-
-    return (
-        <Section>
-            <SettingsSectionTitle>Publishing</SettingsSectionTitle>
-            {getPublishingSubsection()}
-        </Section>
     )
 }

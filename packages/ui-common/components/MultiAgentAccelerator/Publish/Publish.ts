@@ -23,7 +23,8 @@ import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../c
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publish"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
-export const PUBLISH_SETTINGS_REQUIRED_MESSAGE = "Add a publish server and org name in Settings > Publishing to publish"
+export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
+    "Add a publish server and org name in Settings > External Services to publish"
 export const PUBLISHED_MESSAGE = "Published — opened in a new tab"
 export const PUBLISHED_TAB_BLOCKED_MESSAGE = "Published — click View live to open it"
 

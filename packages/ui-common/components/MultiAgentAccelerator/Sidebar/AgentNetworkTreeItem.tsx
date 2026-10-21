@@ -24,9 +24,8 @@ import {FC, useRef} from "react"
 
 import {AgentNetworkTreeItemModel} from "./TreeBuilder"
 import {useEnvironmentStore} from "../../../state/Environment"
-import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
+import {usePublishServerUrl} from "../../../state/Publish"
 import {downloadFile} from "../../../utils/File"
-import {StatusLight} from "../../Common/StatusLight"
 import {PublishIconButton} from "../Publish/PublishIconButton"
 
 //#region Constants
@@ -121,7 +120,6 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
     const isTemporaryNetwork = Boolean(expirationTime)
     const isExpired = isChild && isTemporaryNetwork && isTemporaryNetworkExpired(expirationTime)
     const networkHocon = item?.temporaryNetworkHocon ?? null
-    const publishStatus = usePublishStore((state) => state.networks[itemId]?.status)
     const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
     const publishServerUrl = usePublishServerUrl()
     const networkName = item?.temporaryNetworkName
@@ -214,14 +212,6 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
                         </Box>
                         {isChild && isTemporaryNetwork && (
                             <Box sx={{display: "flex", alignItems: "center", gap: "0.25rem", marginLeft: "auto"}}>
-                                {publishStatus && (
-                                    <Box sx={{alignItems: "center", display: "flex", fontSize: "0.75rem", gap: 0.5}}>
-                                        <StatusLight
-                                            statusValue={publishStatus === PublishStatus.Live ? "green" : "unknown"}
-                                        />
-                                        {publishStatus}
-                                    </Box>
-                                )}
                                 {showPublishButton && (
                                     <PublishIconButton
                                         disabled={isExpired}
@@ -278,7 +268,7 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
                                                 opacity: 0.3,
                                             },
                                             cursor: "pointer",
-                                            fontSize: "1rem",
+                                            fontSize: "0.75rem",
                                         }}
                                     />
                                 </Tooltip>

@@ -16,6 +16,7 @@ limitations under the License.
 
 import PublicIcon from "@mui/icons-material/Public"
 import Box from "@mui/material/Box"
+import CircularProgress from "@mui/material/CircularProgress"
 import IconButton from "@mui/material/IconButton"
 import Tooltip from "@mui/material/Tooltip"
 import {FC, useEffect, useState} from "react"
@@ -40,8 +41,8 @@ interface PublishIconButtonProps {
 }
 
 /**
- * Small globe button for publishing a network from the sidebar. Publishes after asking, or opens the live site once
- * the network is live.
+ * Small globe button for publishing a network from the sidebar. Publishes after asking, spins while publishing, and
+ * turns green once the network is live, when it opens the live site instead.
  */
 export const PublishIconButton: FC<PublishIconButtonProps> = ({
     displayName,
@@ -77,6 +78,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
     }
 
     const label = getLabel()
+    const isPublishing = publishStatus === PublishStatus.Publishing
 
     return (
         <>
@@ -85,7 +87,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                 <span>
                     <IconButton
                         aria-label={label}
-                        disabled={disabled || publishStatus === PublishStatus.Publishing || (!liveUrl && !target)}
+                        disabled={disabled || isPublishing || (!liveUrl && !target)}
                         id={id}
                         onClick={(e) => {
                             e.stopPropagation()
@@ -100,10 +102,19 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
                             color: "var(--bs-secondary)",
                             p: 0,
                             "&:hover": {color: "var(--bs-secondary-dark)"},
-                            "&.Mui-disabled": {opacity: 0.3},
+                            // The spinner stays fully visible while publishing
+                            "&.Mui-disabled": {opacity: isPublishing ? 1 : 0.3},
                         }}
                     >
-                        <PublicIcon sx={{fontSize: "0.75rem"}} />
+                        {isPublishing ? (
+                            <CircularProgress
+                                size="0.75rem"
+                                sx={{color: "var(--bs-secondary)"}}
+                            />
+                        ) : (
+                            // Colored on the icon itself, since the app's global CSS colors icons inside buttons
+                            <PublicIcon sx={{fontSize: "0.75rem", ...(liveUrl && {color: "success.main"})}} />
+                        )}
                     </IconButton>
                 </span>
             </Tooltip>

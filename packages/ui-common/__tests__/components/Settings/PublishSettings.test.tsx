@@ -3,6 +3,7 @@ import {userEvent, UserEvent} from "@testing-library/user-event"
 
 import {withStrictMocks} from "../../../../../__tests__/common/strictMocks"
 import {
+    DEFAULT_PUBLISH_SERVER_LABEL,
     ORG_NAME_LABEL,
     PUBLISH_SERVER_HOST_LABEL,
     PublishSettings,
@@ -45,21 +46,51 @@ describe("PublishSettings", () => {
         useEnvironmentStore.setState({publishServerUrl: null})
     })
 
-    it("should show and test the default server when none is saved", async () => {
-        vi.mocked(checkHealth).mockResolvedValue({success: true})
-        useEnvironmentStore.setState({publishServerUrl: "https://default-publish.test"})
-        useSettingsStore.getState().updateSettings({publish: {orgName: ORG_NAME}})
-        renderSettings()
-        const testButton = screen.getByRole("button", {name: TEST_PUBLISH_SERVER_LABEL})
+    describe("Default server", () => {
+        const DEFAULT_SERVER_HOST = "default-publish.test"
 
-        await user.click(testButton)
+        beforeEach(() => {
+            useEnvironmentStore.setState({publishServerUrl: `https://${DEFAULT_SERVER_HOST}`})
+        })
 
-        expect(screen.getByRole("textbox", {name: PUBLISH_SERVER_HOST_LABEL})).toHaveAttribute(
-            "placeholder",
-            "default-publish.test"
-        )
-        screen.getByText("On")
-        expect(checkHealth).toHaveBeenCalledWith("https://default-publish.test")
+        it("should fill in the default server when none is saved", () => {
+            renderSettings()
+
+            expect(screen.getByRole("textbox", {name: PUBLISH_SERVER_HOST_LABEL})).toHaveValue(DEFAULT_SERVER_HOST)
+        })
+
+        it("should test the default server shown in the field", async () => {
+            vi.mocked(checkHealth).mockResolvedValue({success: true})
+            renderSettings()
+            const testButton = screen.getByRole("button", {name: TEST_PUBLISH_SERVER_LABEL})
+
+            await user.click(testButton)
+
+            expect(checkHealth).toHaveBeenCalledWith(`https://${DEFAULT_SERVER_HOST}`)
+            screen.getByText("Connected")
+        })
+
+        it("should put the default server back when Default is clicked", async () => {
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: `https://${SERVER_HOST}`}})
+            renderSettings()
+            const defaultButton = screen.getByRole("button", {name: DEFAULT_PUBLISH_SERVER_LABEL})
+
+            await user.click(defaultButton)
+
+            expect(screen.getByRole("textbox", {name: PUBLISH_SERVER_HOST_LABEL})).toHaveValue(DEFAULT_SERVER_HOST)
+            expect(defaultButton).toBeDisabled()
+        })
+
+        it("should follow the default again once the default server is saved", async () => {
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: `https://${SERVER_HOST}`}})
+            renderSettings()
+            const defaultButton = screen.getByRole("button", {name: DEFAULT_PUBLISH_SERVER_LABEL})
+            await user.click(defaultButton)
+
+            await save()
+
+            expect(getPublishSettings().serverUrl).toBeNull()
+        })
     })
 
     it("should save the server as an https URL along with the org name", async () => {

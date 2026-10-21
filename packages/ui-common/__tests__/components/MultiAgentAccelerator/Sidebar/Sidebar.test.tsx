@@ -450,29 +450,6 @@ describe("SideBar", () => {
         )
     })
 
-    it.each([
-        {
-            publishState: {
-                publishId: "dep-123",
-                serverUrl: "https://publish.test",
-                status: PublishStatus.Live,
-                url: "http://live.test",
-            },
-            label: "Live",
-        },
-        {publishState: {status: PublishStatus.Publishing}, label: "Publishing"},
-    ] as const)("Should show $label next to the temporary network", async ({publishState, label}) => {
-        usePublishStore.setState({networks: {[TEMPORARY_NETWORK.agentInfo.agent_name]: publishState}})
-
-        renderSidebarComponent({
-            networks: [...LIST_NETWORKS_RESPONSE],
-            temporaryNetworks: [TEMPORARY_NETWORK],
-            newlyAddedTemporaryNetworks: new Set([TEMPORARY_NETWORK.agentInfo.agent_name]),
-        })
-
-        await screen.findByText(label)
-    })
-
     it("Should handle expired temporary networks correctly", async () => {
         renderSidebarComponent({
             networks: [...LIST_NETWORKS_RESPONSE],
@@ -704,6 +681,17 @@ describe("SideBar", () => {
             screen.getByRole("button", {name: "Publish"})
             expect(publishNetwork).not.toHaveBeenCalled()
             expect(setSelectedNetworkMock).not.toHaveBeenCalled()
+        })
+
+        it("Should show a temporary network is still publishing, without offering to publish it again", async () => {
+            usePublishStore.setState({
+                networks: {[TEMPORARY_NETWORK.agentInfo.agent_name]: {status: PublishStatus.Publishing}},
+            })
+            renderWithTemporaryNetwork()
+
+            const publishingButton = await screen.findByRole("button", {name: "Publishing..."})
+
+            expect(publishingButton).toBeDisabled()
         })
 
         it("Should ask for an org name before publishing", async () => {

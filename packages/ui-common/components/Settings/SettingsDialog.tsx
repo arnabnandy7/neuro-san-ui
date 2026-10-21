@@ -488,6 +488,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         <Section>
             <SettingsSectionTitle>External Services</SettingsSectionTitle>
             {getNeuroSanSubsection()}
+            {enablePublishing && <PublishSettings id={`${id}-publish`} />}
         </Section>
     )
 
@@ -1032,7 +1033,6 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
                 {getApiKeysSection()}
                 {getBehaviorSection()}
                 {getAppearanceSection()}
-                {enablePublishing && <PublishSettings id={`${id}-publishing`} />}
                 {getResetSettingsSection()}
             </MUIDialog>
         </ThemeProvider>
