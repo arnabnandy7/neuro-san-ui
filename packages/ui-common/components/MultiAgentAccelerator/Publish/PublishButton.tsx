@@ -35,7 +35,7 @@ import {
     unpublish,
 } from "./Publishing"
 import {PublishPanel} from "./PublishPanel"
-import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {Published, PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
 import {useSettingsStore} from "../../../state/Settings"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
 
@@ -66,7 +66,7 @@ interface MainAction {
  */
 export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, networkId, networkName}) => {
     const publishState = usePublishStore((state) => state.networks[networkId])
-    const serverUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const serverUrl = usePublishServerUrl()
     const orgName = useSettingsStore((state) => state.settings.publish.orgName)
     const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
 

@@ -24,8 +24,7 @@ import {FC, useRef} from "react"
 
 import {AgentNetworkTreeItemModel} from "./TreeBuilder"
 import {useEnvironmentStore} from "../../../state/Environment"
-import {PublishStatus, usePublishStore} from "../../../state/Publishing"
-import {useSettingsStore} from "../../../state/Settings"
+import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
 import {downloadFile} from "../../../utils/File"
 import {StatusLight} from "../../Common/StatusLight"
 import {PublishIconButton} from "../Publish/PublishIconButton"
@@ -124,7 +123,7 @@ export const AgentNetworkTreeItem: FC<AgentNetworkNodeProps> = ({
     const networkHocon = item?.temporaryNetworkHocon ?? null
     const publishStatus = usePublishStore((state) => state.networks[itemId]?.status)
     const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
-    const publishServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const publishServerUrl = usePublishServerUrl()
     const networkName = item?.temporaryNetworkName
     const showPublishButton = enablePublishing && Boolean(publishServerUrl) && networkHocon && networkName
 

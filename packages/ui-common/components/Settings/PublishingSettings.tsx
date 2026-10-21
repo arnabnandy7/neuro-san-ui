@@ -27,6 +27,7 @@ import {FC, ReactNode, useState} from "react"
 
 import {Section, SettingsSectionTitle, SettingsSubsection} from "./SettingsLayout"
 import {checkHealth} from "../../controller/publish/PublishServer"
+import {useEnvironmentStore} from "../../state/Environment"
 import {useSettingsStore} from "../../state/Settings"
 import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 
@@ -111,6 +112,7 @@ export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
     const updateSettings = useSettingsStore((state) => state.updateSettings)
     const savedServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl) ?? ""
     const savedOrgName = useSettingsStore((state) => state.settings.publish.orgName) ?? ""
+    const defaultServerUrl = useEnvironmentStore((state) => state.publishServerUrl)
 
     const [protocol, setProtocol] = useState<Protocol>(savedServerUrl.startsWith("http://") ? "http" : "https")
     const [hostInput, setHostInput] = useState(stripProtocol(savedServerUrl))
@@ -120,8 +122,10 @@ export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
     const normalized = normalizeUrlInput(hostInput, protocol)
     const serverUrl = normalized.host ? `${normalized.protocol}://${normalized.host}` : ""
     const orgName = orgNameInput.trim()
+    // An empty field means the default server
+    const serverToTest = serverUrl || defaultServerUrl
 
-    const isPublishingOn = Boolean(savedServerUrl && savedOrgName)
+    const isPublishingOn = Boolean((savedServerUrl || defaultServerUrl) && savedOrgName)
     const hasChanges = serverUrl !== savedServerUrl || orgName !== savedOrgName
 
     const handleHostChange = (host: string) => {
@@ -130,12 +134,12 @@ export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
     }
 
     const handleTest = async () => {
-        const result = await checkHealth(serverUrl)
+        const result = await checkHealth(serverToTest)
         setIsServerReachable(result.success)
     }
 
     const handleSave = () => {
-        // Saving an empty server turns publishing off
+        // Saving an empty server goes back to the default
         updateSettings({publish: {serverUrl: serverUrl || null, orgName: orgName || null}})
     }
 
@@ -155,7 +159,7 @@ export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
                     action={
                         <Button
                             aria-label={TEST_PUBLISH_SERVER_LABEL}
-                            disabled={!serverUrl}
+                            disabled={!serverToTest}
                             onClick={handleTest}
                             size="small"
                             variant="contained"
@@ -170,7 +174,7 @@ export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
                                 setProtocol(normalized.protocol)
                             }}
                             onChange={(e) => handleHostChange(e.target.value)}
-                            placeholder="publish.example.com"
+                            placeholder={defaultServerUrl ? stripProtocol(defaultServerUrl) : "publish.example.com"}
                             size="small"
                             slotProps={{
                                 htmlInput: {"aria-label": PUBLISH_SERVER_HOST_LABEL},

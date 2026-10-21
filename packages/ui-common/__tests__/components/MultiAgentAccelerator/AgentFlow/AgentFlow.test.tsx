@@ -1720,6 +1720,7 @@ describe("AgentFlow", () => {
         beforeEach(() => {
             useSettingsStore.getState().updateSettings({publish: {serverUrl: "https://publish.test", orgName: "org"}})
             useEnvironmentStore.getState().setEnablePublishing(true)
+            useEnvironmentStore.setState({publishServerUrl: null})
             vi.mocked(findPublishedNetwork).mockResolvedValue(null)
         })
 
@@ -1729,7 +1730,15 @@ describe("AgentFlow", () => {
             await screen.findByRole("button", {name: "Publish"})
         })
 
-        it("Should not offer to publish until a publish server is set in Settings", () => {
+        it("Should offer to publish with the default publish server when none is set in Settings", async () => {
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: null}})
+            useEnvironmentStore.setState({publishServerUrl: "https://default-publish.test"})
+            renderPublishableNetwork()
+
+            await screen.findByRole("button", {name: "Publish"})
+        })
+
+        it("Should not offer to publish until there's a publish server", () => {
             useSettingsStore.getState().updateSettings({publish: {serverUrl: null}})
             renderPublishableNetwork()
 

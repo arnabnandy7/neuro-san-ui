@@ -24,5 +24,6 @@ export interface EnvironmentResponse {
     readonly enableGoogleAnalytics?: boolean
     readonly gaMeasurementID?: string
     readonly logoServiceToken?: string
+    readonly publishServerUrl?: string
     readonly supportEmailAddress?: string
 }

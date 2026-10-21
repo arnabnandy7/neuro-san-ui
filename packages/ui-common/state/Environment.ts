@@ -52,6 +52,10 @@ interface EnvironmentStore {
     // Publishing
     enablePublishing: boolean | undefined
     setEnablePublishing: (enablePublishing: boolean) => void
+
+    // Default publish server, which Settings can override
+    publishServerUrl: string | null
+    setPublishServerUrl: (publishServerUrl: string) => void
 }
 
 /**
@@ -78,4 +82,7 @@ export const useEnvironmentStore = create<EnvironmentStore>((set) => ({
 
     enablePublishing: undefined,
     setEnablePublishing: (enablePublishing: boolean) => set(() => ({enablePublishing})),
+
+    publishServerUrl: null,
+    setPublishServerUrl: (publishServerUrl: string) => set(() => ({publishServerUrl})),
 }))

@@ -23,6 +23,7 @@ import {
     ENABLE_GOOGLE_ANALYTICS_ENV_VAR,
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
+    PUBLISH_SERVER_URL_ENV_VAR,
 } from "../../../../Const"
 import handler from "../../../../pages/api/environment"
 import {EnvironmentResponse} from "../../../../pages/api/environment/Types"
@@ -53,6 +54,7 @@ describe("Environment API handler", () => {
         process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR] = "true"
         process.env["GA_MEASUREMENT_ID"] = "test-ga-id"
         process.env[ENABLE_PUBLISHING_ENV_VAR] = "true"
+        process.env[PUBLISH_SERVER_URL_ENV_VAR] = "https://publish.example.com"
 
         const {req, res} = createMocks()
 
@@ -69,6 +71,7 @@ describe("Environment API handler", () => {
             enablePublishing: true,
             gaMeasurementID: "test-ga-id",
             logoServiceToken: "test-logo-service-token",
+            publishServerUrl: "https://publish.example.com",
             supportEmailAddress: "support@example.com",
         } satisfies Required<EnvironmentResponse>)
     })
@@ -82,6 +85,7 @@ describe("Environment API handler", () => {
         delete process.env["SUPPORT_EMAIL_ADDRESS"]
         delete process.env["LOGO_SERVICE_TOKEN"]
         delete process.env[ENABLE_AUTHENTICATION_ENV_VAR]
+        delete process.env[PUBLISH_SERVER_URL_ENV_VAR]
         delete process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR]
         delete process.env["GA_MEASUREMENT_ID"]
 
@@ -100,6 +104,7 @@ describe("Environment API handler", () => {
             gaMeasurementID: undefined,
             supportEmailAddress: undefined,
             logoServiceToken: undefined,
+            publishServerUrl: undefined,
         } satisfies Required<EnvironmentResponse>)
     })
 
@@ -113,6 +118,7 @@ describe("Environment API handler", () => {
         process.env[ENABLE_AUTHENTICATION_ENV_VAR] = ""
         process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR] = ""
         process.env["GA_MEASUREMENT_ID"] = ""
+        process.env[PUBLISH_SERVER_URL_ENV_VAR] = ""
 
         const {req, res} = createMocks()
 
@@ -128,6 +134,7 @@ describe("Environment API handler", () => {
             enablePublishing: false, // defaults to false if not set
             gaMeasurementID: "",
             logoServiceToken: "",
+            publishServerUrl: "",
             supportEmailAddress: "",
         } satisfies Required<EnvironmentResponse>)
     })
@@ -142,6 +149,7 @@ describe("Environment API handler", () => {
         delete process.env[ENABLE_GOOGLE_ANALYTICS_ENV_VAR]
         delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
         delete process.env[ENABLE_AUTHENTICATION_ENV_VAR]
+        delete process.env[PUBLISH_SERVER_URL_ENV_VAR]
 
         const {req, res} = createMocks({
             method: "POST",
@@ -160,6 +168,7 @@ describe("Environment API handler", () => {
             enablePublishing: false, // defaults to false if not set
             gaMeasurementID: undefined,
             logoServiceToken: undefined,
+            publishServerUrl: undefined,
             supportEmailAddress: undefined,
         } satisfies Required<EnvironmentResponse>)
     })

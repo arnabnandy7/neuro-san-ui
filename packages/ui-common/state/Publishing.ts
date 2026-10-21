@@ -16,6 +16,9 @@ limitations under the License.
 
 import {create} from "zustand"
 
+import {useEnvironmentStore} from "./Environment"
+import {useSettingsStore} from "./Settings"
+
 export enum PublishStatus {
     Publishing = "Publishing",
     Live = "Live",
@@ -55,3 +58,12 @@ export const usePublishStore = create<PublishStore>()((set) => ({
             return {networks: rest}
         }),
 }))
+
+/**
+ * The publish server to use: the one set in Settings, otherwise the default from the environment.
+ */
+export const usePublishServerUrl = (): string | null => {
+    const settingsServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const defaultServerUrl = useEnvironmentStore((state) => state.publishServerUrl)
+    return settingsServerUrl ?? defaultServerUrl
+}

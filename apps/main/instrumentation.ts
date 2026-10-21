@@ -27,6 +27,7 @@ import {
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
     PUBLISH_BEARER_TOKEN_ENV_VAR,
+    PUBLISH_SERVER_URL_ENV_VAR,
 } from "./Const"
 
 /**
@@ -114,5 +115,6 @@ export const register = () => {
     console.info("Logo service token:", process.env["LOGO_SERVICE_TOKEN"] ? "set" : "not set")
     console.info("Neuro SAN server URL:", process.env["NEURO_SAN_SERVER_URL"])
     console.info("Publishing enabled:", enablePublishing)
+    console.info("Publish server URL:", process.env[PUBLISH_SERVER_URL_ENV_VAR] || "not set")
     console.info("Publish bearer token:", process.env[PUBLISH_BEARER_TOKEN_ENV_VAR] ? "set" : "not set")
 }

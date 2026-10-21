@@ -22,7 +22,7 @@ import {FC, useEffect, useState} from "react"
 
 import {PublishConfirmation} from "./PublishConfirmation"
 import {checkIfPublished, openInNewTab, publish, PUBLISH_SETTINGS_REQUIRED_MESSAGE, PublishTarget} from "./Publishing"
-import {PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
 import {useSettingsStore} from "../../../state/Settings"
 
 interface PublishIconButtonProps {
@@ -56,7 +56,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
         const publishState = state.networks[networkId]
         return publishState?.status === PublishStatus.Live ? publishState.url : null
     })
-    const serverUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    const serverUrl = usePublishServerUrl()
     const orgName = useSettingsStore((state) => state.settings.publish.orgName)
     const target: PublishTarget | null = serverUrl && orgName ? {serverUrl, orgName} : null
 

@@ -67,6 +67,7 @@ import {PlasmaEdge} from "./PlasmaEdge"
 import {AgentIconSuggestions} from "../../../controller/Types/AgentIconSuggestions"
 import {ConnectivityInfo} from "../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../state/Environment"
+import {usePublishServerUrl} from "../../../state/Publishing"
 import {GraphColoringOption, Layout, usePalette, useSettingsStore} from "../../../state/Settings"
 import {useTempNetworksStore} from "../../../state/TemporaryNetworks"
 import {getZIndex} from "../../../utils/zIndexLayers"
@@ -255,8 +256,8 @@ export const AgentFlow: FC<AgentFlowProps> = ({
     // Read temporary networks to find agent_network_definition for the currently selected network.
     const tempNetworks = useTempNetworksStore((state) => state.tempNetworks)
 
-    // Publishing is only offered once a publish server is set in Settings
-    const publishServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl)
+    // Publishing is only offered once there's a publish server, from the environment or Settings
+    const publishServerUrl = usePublishServerUrl()
 
     const currentTempNetwork = useMemo(
         () => (networkId ? tempNetworks.find((n) => n.agentInfo.agent_name === networkId) : undefined),

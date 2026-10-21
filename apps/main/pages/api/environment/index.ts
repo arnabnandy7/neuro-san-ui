@@ -23,6 +23,7 @@ import {
     ENABLE_GOOGLE_ANALYTICS_ENV_VAR,
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
+    PUBLISH_SERVER_URL_ENV_VAR,
 } from "../../../Const"
 
 /**
@@ -43,6 +44,7 @@ const handler = (_req: NextApiRequest, res: NextApiResponse<EnvironmentResponse>
     const enablePublishing = process.env[ENABLE_PUBLISHING_ENV_VAR] === "true"
     const gaMeasurementID = process.env[GA_MEASUREMENT_ID_ENV_VAR]
     const logoServiceToken = process.env["LOGO_SERVICE_TOKEN"]
+    const publishServerUrl = process.env[PUBLISH_SERVER_URL_ENV_VAR]
     const supportEmailAddress = process.env["SUPPORT_EMAIL_ADDRESS"]
 
     res.status(httpStatus.OK).json({
@@ -54,6 +56,7 @@ const handler = (_req: NextApiRequest, res: NextApiResponse<EnvironmentResponse>
         enablePublishing,
         gaMeasurementID,
         logoServiceToken,
+        publishServerUrl,
         supportEmailAddress,
     } satisfies EnvironmentResponse)
 }

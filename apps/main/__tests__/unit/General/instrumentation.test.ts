@@ -25,6 +25,7 @@ import {
     ENABLE_PUBLISHING_ENV_VAR,
     GA_MEASUREMENT_ID_ENV_VAR,
     PUBLISH_BEARER_TOKEN_ENV_VAR,
+    PUBLISH_SERVER_URL_ENV_VAR,
 } from "../../../Const"
 import {OPTIONAL_ENV_VARS, register, REQUIRED_ENV_VARS, REQUIRED_FOR_AUTH_ENV_VARS} from "../../../instrumentation"
 
@@ -63,6 +64,7 @@ describe("instrumentation", () => {
         // Default to "Publishing enabled"
         process.env[ENABLE_PUBLISHING_ENV_VAR] = "true"
         process.env[PUBLISH_BEARER_TOKEN_ENV_VAR] = "PUBLISH_BEARER_TOKEN-test_value"
+        process.env[PUBLISH_SERVER_URL_ENV_VAR] = "PUBLISH_SERVER_URL-test_value"
     })
 
     const expectConsoleOutput = (
@@ -73,9 +75,10 @@ describe("instrumentation", () => {
         openAIKeySet: string,
         logoServiceTokenSet: string,
         neuroSanServerURL: string,
+        publishServerURL: string,
         bearerTokenSet: string
     ) => {
-        expect(console.info).toHaveBeenCalledTimes(9)
+        expect(console.info).toHaveBeenCalledTimes(10)
         expect(console.info).toHaveBeenCalledWith("Start-up: Environment variables checked successfully.")
         expect(console.info).toHaveBeenCalledWith("Authentication enabled:", enableAuthentication)
         expect(console.info).toHaveBeenCalledWith("Google Analytics enabled:", enableGoogleAnalytics)
@@ -84,6 +87,7 @@ describe("instrumentation", () => {
         expect(console.info).toHaveBeenCalledWith("Logo service token:", logoServiceTokenSet)
         expect(console.info).toHaveBeenCalledWith("Neuro SAN server URL:", neuroSanServerURL)
         expect(console.info).toHaveBeenCalledWith("Publishing enabled:", enablePublishing)
+        expect(console.info).toHaveBeenCalledWith("Publish server URL:", publishServerURL)
         expect(console.info).toHaveBeenCalledWith("Publish bearer token:", bearerTokenSet)
     }
 
@@ -100,6 +104,7 @@ describe("instrumentation", () => {
             "set",
             "set",
             "NEURO_SAN_SERVER_URL-test_value",
+            "PUBLISH_SERVER_URL-test_value",
             "set"
         )
     })
@@ -157,6 +162,7 @@ describe("instrumentation", () => {
             "set",
             "set",
             "NEURO_SAN_SERVER_URL-test_value",
+            "PUBLISH_SERVER_URL-test_value",
             "set"
         )
     })
@@ -174,6 +180,7 @@ describe("instrumentation", () => {
         delete process.env[GA_MEASUREMENT_ID_ENV_VAR]
         delete process.env[ENABLE_PUBLISHING_ENV_VAR]
         delete process.env[PUBLISH_BEARER_TOKEN_ENV_VAR]
+        delete process.env[PUBLISH_SERVER_URL_ENV_VAR]
 
         // Spy on console.warn to suppress output during test
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(vi.fn())
@@ -193,6 +200,7 @@ describe("instrumentation", () => {
             "not set",
             "not set",
             "NEURO_SAN_SERVER_URL-test_value",
+            "not set",
             "not set"
         )
     })

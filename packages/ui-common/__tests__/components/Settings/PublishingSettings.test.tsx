@@ -10,6 +10,7 @@ import {
     TEST_PUBLISH_SERVER_LABEL,
 } from "../../../components/Settings/PublishingSettings"
 import {checkHealth} from "../../../controller/publish/PublishServer"
+import {useEnvironmentStore} from "../../../state/Environment"
 import {useSettingsStore} from "../../../state/Settings"
 
 vi.mock("../../../controller/publish/PublishServer")
@@ -41,6 +42,24 @@ describe("PublishingSettings", () => {
     beforeEach(() => {
         user = userEvent.setup()
         useSettingsStore.getState().resetSettings()
+        useEnvironmentStore.setState({publishServerUrl: null})
+    })
+
+    it("should show and test the default server when none is saved", async () => {
+        vi.mocked(checkHealth).mockResolvedValue({success: true})
+        useEnvironmentStore.setState({publishServerUrl: "https://default-publish.test"})
+        useSettingsStore.getState().updateSettings({publish: {orgName: ORG_NAME}})
+        renderSettings()
+        const testButton = screen.getByRole("button", {name: TEST_PUBLISH_SERVER_LABEL})
+
+        await user.click(testButton)
+
+        expect(screen.getByRole("textbox", {name: PUBLISH_SERVER_HOST_LABEL})).toHaveAttribute(
+            "placeholder",
+            "default-publish.test"
+        )
+        screen.getByText("On")
+        expect(checkHealth).toHaveBeenCalledWith("https://default-publish.test")
     })
 
     it("should save the server as an https URL along with the org name", async () => {
