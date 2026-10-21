@@ -20,7 +20,7 @@ limitations under the License.
  */
 
 import {findPublishedNetwork, publishNetwork, unpublishNetwork} from "../../../controller/publish/Publish"
-import {Published, PublishStatus, usePublishStore} from "../../../state/Publishing"
+import {Published, PublishStatus, usePublishStore} from "../../../state/Publish"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 export const PUBLISH_SETTINGS_REQUIRED_MESSAGE = "Add a publish server and org name in Settings > Publishing to publish"

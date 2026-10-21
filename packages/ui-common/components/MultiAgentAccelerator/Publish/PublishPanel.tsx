@@ -22,7 +22,7 @@ import Typography from "@mui/material/Typography"
 import {FC} from "react"
 
 import {LiveUrlField} from "./LiveUrlField"
-import {Published, PublishState, PublishStatus} from "../../../state/Publishing"
+import {Published, PublishState, PublishStatus} from "../../../state/Publish"
 import {StatusLight} from "../../Common/StatusLight"
 
 interface PublishPanelProps {

@@ -4,20 +4,20 @@ import {MockInstance} from "vitest"
 
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {NotificationType, sendNotification} from "../../../../components/Common/notification"
-import {PublishButton, SHOW_DETAILS_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
-import {PUBLIC_ACCESS_WARNING} from "../../../../components/MultiAgentAccelerator/Publish/PublishConfirmation"
 import {
     PUBLISH_SETTINGS_REQUIRED_MESSAGE,
     PUBLISHED_MESSAGE,
     PUBLISHED_TAB_BLOCKED_MESSAGE,
-} from "../../../../components/MultiAgentAccelerator/Publish/Publishing"
+} from "../../../../components/MultiAgentAccelerator/Publish/Publish"
+import {PublishButton, SHOW_DETAILS_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
+import {PUBLIC_ACCESS_WARNING} from "../../../../components/MultiAgentAccelerator/Publish/PublishConfirmation"
 import {
     findPublishedNetwork,
     PublishedNetwork,
     publishNetwork,
     unpublishNetwork,
 } from "../../../../controller/publish/Publish"
-import {usePublishStore} from "../../../../state/Publishing"
+import {usePublishStore} from "../../../../state/Publish"
 import {useSettingsStore} from "../../../../state/Settings"
 
 //#region Constants

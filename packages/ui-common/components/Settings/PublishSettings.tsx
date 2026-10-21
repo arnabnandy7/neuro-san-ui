@@ -100,7 +100,7 @@ const FieldGrid: FC<{readonly children: ReactNode}> = ({children}) => (
     </Box>
 )
 
-interface PublishingSettingsProps {
+interface PublishSettingsProps {
     readonly id: string
 }
 
@@ -108,7 +108,7 @@ interface PublishingSettingsProps {
  * "Publishing" section of the Settings dialog: the publish server that networks are published to, and the org name
  * sent with each publish.
  */
-export const PublishingSettings: FC<PublishingSettingsProps> = ({id}) => {
+export const PublishSettings: FC<PublishSettingsProps> = ({id}) => {
     const updateSettings = useSettingsStore((state) => state.updateSettings)
     const savedServerUrl = useSettingsStore((state) => state.settings.publish.serverUrl) ?? ""
     const savedOrgName = useSettingsStore((state) => state.settings.publish.orgName) ?? ""

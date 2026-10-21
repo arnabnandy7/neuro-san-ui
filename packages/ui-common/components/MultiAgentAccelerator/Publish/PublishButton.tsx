@@ -24,7 +24,6 @@ import Popover from "@mui/material/Popover"
 import Tooltip from "@mui/material/Tooltip"
 import {FC, ReactNode, useEffect, useState} from "react"
 
-import {PublishConfirmation} from "./PublishConfirmation"
 import {
     checkIfPublished,
     openInNewTab,
@@ -33,9 +32,10 @@ import {
     PublishNetwork,
     PublishTarget,
     unpublish,
-} from "./Publishing"
+} from "./Publish"
+import {PublishConfirmation} from "./PublishConfirmation"
 import {PublishPanel} from "./PublishPanel"
-import {Published, PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
+import {Published, PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
 import {useSettingsStore} from "../../../state/Settings"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
 

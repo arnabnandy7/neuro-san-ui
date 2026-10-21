@@ -4,7 +4,7 @@ import {userEvent} from "@testing-library/user-event"
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {COPY_URL_LABEL, OPEN_URL_LABEL} from "../../../../components/MultiAgentAccelerator/Publish/LiveUrlField"
 import {PublishPanel} from "../../../../components/MultiAgentAccelerator/Publish/PublishPanel"
-import {PublishState, PublishStatus} from "../../../../state/Publishing"
+import {PublishState, PublishStatus} from "../../../../state/Publish"
 
 const LIVE_URL = "http://live.test/cailville_bakery"
 

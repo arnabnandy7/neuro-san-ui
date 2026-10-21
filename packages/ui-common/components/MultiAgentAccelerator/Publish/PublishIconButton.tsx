@@ -20,9 +20,9 @@ import IconButton from "@mui/material/IconButton"
 import Tooltip from "@mui/material/Tooltip"
 import {FC, useEffect, useState} from "react"
 
+import {checkIfPublished, openInNewTab, publish, PUBLISH_SETTINGS_REQUIRED_MESSAGE, PublishTarget} from "./Publish"
 import {PublishConfirmation} from "./PublishConfirmation"
-import {checkIfPublished, openInNewTab, publish, PUBLISH_SETTINGS_REQUIRED_MESSAGE, PublishTarget} from "./Publishing"
-import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
+import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
 import {useSettingsStore} from "../../../state/Settings"
 
 interface PublishIconButtonProps {

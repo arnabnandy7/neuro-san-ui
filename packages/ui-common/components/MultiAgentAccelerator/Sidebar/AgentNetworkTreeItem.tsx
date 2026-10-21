@@ -24,7 +24,7 @@ import {FC, useRef} from "react"
 
 import {AgentNetworkTreeItemModel} from "./TreeBuilder"
 import {useEnvironmentStore} from "../../../state/Environment"
-import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publishing"
+import {PublishStatus, usePublishServerUrl, usePublishStore} from "../../../state/Publish"
 import {downloadFile} from "../../../utils/File"
 import {StatusLight} from "../../Common/StatusLight"
 import {PublishIconButton} from "../Publish/PublishIconButton"

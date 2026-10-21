@@ -5,10 +5,10 @@ import {withStrictMocks} from "../../../../../__tests__/common/strictMocks"
 import {
     ORG_NAME_LABEL,
     PUBLISH_SERVER_HOST_LABEL,
-    PublishingSettings,
+    PublishSettings,
     SAVE_PUBLISHING_LABEL,
     TEST_PUBLISH_SERVER_LABEL,
-} from "../../../components/Settings/PublishingSettings"
+} from "../../../components/Settings/PublishSettings"
 import {checkHealth} from "../../../controller/publish/Publish"
 import {useEnvironmentStore} from "../../../state/Environment"
 import {useSettingsStore} from "../../../state/Settings"
@@ -18,14 +18,14 @@ vi.mock("../../../controller/publish/Publish")
 const ORG_NAME = "cailville"
 const SERVER_HOST = "publish.test"
 
-describe("PublishingSettings", () => {
+describe("PublishSettings", () => {
     withStrictMocks()
 
     let user: UserEvent
 
     const getPublishSettings = () => useSettingsStore.getState().settings.publish
 
-    const renderSettings = () => render(<PublishingSettings id="publishing" />)
+    const renderSettings = () => render(<PublishSettings id="publishing" />)
 
     const typeInto = async (label: string, text: string) => {
         const field = screen.getByRole("textbox", {name: label})

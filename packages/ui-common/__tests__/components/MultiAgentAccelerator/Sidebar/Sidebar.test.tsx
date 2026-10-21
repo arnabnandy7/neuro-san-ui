@@ -38,7 +38,7 @@ import {
     TEST_DEEP_AGENT_DISPLAY,
 } from "../../../../../../__tests__/common/NetworksListMock"
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
-import {PUBLISH_SETTINGS_REQUIRED_MESSAGE} from "../../../../components/MultiAgentAccelerator/Publish/Publishing"
+import {PUBLISH_SETTINGS_REQUIRED_MESSAGE} from "../../../../components/MultiAgentAccelerator/Publish/Publish"
 import {
     DOWNLOAD_NETWORK_DEFINITION_LABEL,
     EDIT_NETWORK_LABEL,
@@ -53,7 +53,7 @@ import {findPublishedNetwork, publishNetwork} from "../../../../controller/publi
 import {NetworkIconSuggestions} from "../../../../controller/Types/NetworkIconSuggestions"
 import {AgentInfo} from "../../../../generated/neuro-san/NeuroSanClient"
 import {useEnvironmentStore} from "../../../../state/Environment"
-import {PublishStatus, usePublishStore} from "../../../../state/Publishing"
+import {PublishStatus, usePublishStore} from "../../../../state/Publish"
 import {useSettingsStore} from "../../../../state/Settings"
 import {cleanUpAgentName} from "../../../../utils/AgentName"
 import {downloadFile} from "../../../../utils/File"

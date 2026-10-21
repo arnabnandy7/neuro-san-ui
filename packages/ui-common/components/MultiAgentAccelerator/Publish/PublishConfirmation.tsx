@@ -16,7 +16,7 @@ limitations under the License.
 
 import {FC} from "react"
 
-import {PublishTarget} from "./Publishing"
+import {PublishTarget} from "./Publish"
 import {ConfirmationModal} from "../../Common/ConfirmationModal"
 
 export const PUBLIC_ACCESS_WARNING = "Anyone with the link can see and use it. There's no sign-in or access control."
