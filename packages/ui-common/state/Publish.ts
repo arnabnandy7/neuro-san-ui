@@ -21,7 +21,7 @@ import {useSettingsStore} from "./Settings"
 
 export enum PublishStatus {
     Publishing = "Publishing",
-    Live = "Live",
+    Published = "Published",
 }
 
 interface Publishing {
@@ -29,7 +29,7 @@ interface Publishing {
 }
 
 export interface Published {
-    readonly status: PublishStatus.Live
+    readonly status: PublishStatus.Published
     /** The publish server it's published on, so it's unpublished from the same one */
     readonly serverUrl: string
     /** The server's id for it, needed to unpublish */

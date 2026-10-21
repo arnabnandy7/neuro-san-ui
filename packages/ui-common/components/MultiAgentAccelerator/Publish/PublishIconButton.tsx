@@ -55,7 +55,7 @@ export const PublishIconButton: FC<PublishIconButtonProps> = ({
     const publishStatus = usePublishStore((state) => state.networks[networkId]?.status)
     const liveUrl = usePublishStore((state) => {
         const publishState = state.networks[networkId]
-        return publishState?.status === PublishStatus.Live ? publishState.url : null
+        return publishState?.status === PublishStatus.Published ? publishState.url : null
     })
     const serverUrl = usePublishServerUrl()
     const orgName = useSettingsStore((state) => state.settings.publish.orgName)

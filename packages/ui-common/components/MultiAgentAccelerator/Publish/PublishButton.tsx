@@ -114,7 +114,7 @@ export const PublishButton: FC<PublishButtonProps> = ({displayName, hocon, id, n
                     label: "Publishing...",
                     handleClick: () => setIsPanelOpen(true),
                 }
-            case PublishStatus.Live:
+            case PublishStatus.Published:
                 return {
                     color: "success",
                     icon: <OpenInNewIcon />,

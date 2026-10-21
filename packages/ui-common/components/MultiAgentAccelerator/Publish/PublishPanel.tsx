@@ -40,7 +40,7 @@ export const PublishPanel: FC<PublishPanelProps> = ({id, isUnpublishing, onUnpub
         id={id}
         sx={{display: "flex", flexDirection: "column", gap: 1.5, p: 2, width: "22rem"}}
     >
-        {publishState.status === PublishStatus.Live ? (
+        {publishState.status === PublishStatus.Published ? (
             <>
                 <Box sx={{alignItems: "center", display: "flex", gap: 1}}>
                     <StatusLight statusValue="green" />

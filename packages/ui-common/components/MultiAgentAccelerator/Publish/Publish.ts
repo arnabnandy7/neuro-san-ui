@@ -70,7 +70,7 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
         if (!ready || usePublishStore.getState().networks[network.id]) return
 
         usePublishStore.getState().setPublishState(network.id, {
-            status: PublishStatus.Live,
+            status: PublishStatus.Published,
             serverUrl,
             publishId: ready.id,
             url: ready.url,
@@ -94,7 +94,7 @@ export const publish = async (
 
     try {
         const ready = await publishNetwork({serverUrl, orgName, networkName: network.name, hocon})
-        setPublishState(network.id, {status: PublishStatus.Live, serverUrl, publishId: ready.id, url: ready.url})
+        setPublishState(network.id, {status: PublishStatus.Published, serverUrl, publishId: ready.id, url: ready.url})
 
         const message = openInNewTab(ready.url) ? PUBLISHED_MESSAGE : PUBLISHED_TAB_BLOCKED_MESSAGE
         sendNotification(NotificationType.success, message, "", {vertical: "bottom", horizontal: "center"})

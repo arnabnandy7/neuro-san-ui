@@ -709,7 +709,7 @@ describe("SideBar", () => {
                     [TEMPORARY_NETWORK.agentInfo.agent_name]: {
                         publishId: "dep-123",
                         serverUrl: SERVER_URL,
-                        status: PublishStatus.Live,
+                        status: PublishStatus.Published,
                         url: LIVE_URL,
                     },
                 },
