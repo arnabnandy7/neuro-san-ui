@@ -63,6 +63,17 @@ describe("Publish", () => {
         expect(await file.text()).toBe(HOCON)
     })
 
+    // POST /deployments
+    it("should ask for a themed site that keeps its existing theme", async () => {
+        fetchMock.mockResolvedValue(Response.json({id: PUBLISH_ID, status: "ready", url: LIVE_URL}, {status: 202}))
+
+        await create()
+
+        const form = fetchMock.mock.calls[0][1]?.body as FormData
+        expect(form.get("theme")).toBe("true")
+        expect(form.get("theme_refresh")).toBe("false")
+    })
+
     // POST /deployments, then GET /deployments/{id}/wait until it's ready
     it("should keep waiting while the server says it's still building, then return the live URL", async () => {
         fetchMock

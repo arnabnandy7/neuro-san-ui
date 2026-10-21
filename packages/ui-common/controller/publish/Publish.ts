@@ -21,7 +21,8 @@ limitations under the License.
  * Endpoints we call:
  * - `GET /health`: whether the server is up. No token needed. Used by checkHealth.
  * - `GET /deployments`: lists published networks. Used by findPublishedNetwork.
- * - `POST /deployments`: uploads the HOCON as `file` along with `name` and `org_name`. Used by publishNetwork.
+ * - `POST /deployments`: uploads the HOCON as `file` along with `name`, `org_name`, `theme` and `theme_refresh`.
+ *   Used by publishNetwork.
  * - `GET /deployments/{id}/wait?timeout=60`: waits for the build. 504 means it's still building, so ask again. Used by
  *   publishNetwork.
  * - `DELETE /deployments/{id}`: takes a network offline. Used by unpublishNetwork.
@@ -127,6 +128,9 @@ export const publishNetwork = async ({
     form.append("file", new Blob([hocon], {type: "text/plain"}), `${networkName}.hocon`)
     form.append("name", networkName)
     form.append("org_name", orgName)
+    // Without theme the server makes a plain page. theme_refresh=false keeps a theme it already made for this network.
+    form.append("theme", "true")
+    form.append("theme_refresh", "false")
 
     const createResponse = await fetch(publishRouteUrl(serverUrl, "deployments"), {method: "POST", body: form})
     await throwIfNotOk(createResponse, "Publishing")
