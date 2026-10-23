@@ -111,14 +111,24 @@ export const publish = async (
 /**
  * Takes a live network offline, on the server it was published to.
  */
-export const unpublish = async (network: PublishNetwork, published: Published): Promise<void> => {
+export const unpublish = async (network: PublishNetwork, published: Published): Promise<boolean> => {
     try {
         await unpublishNetwork(published.serverUrl, published.publishId)
         // The shared list still has it as live, so drop the list too
-        const {clearPublishState, setPublishedList} = usePublishStore.getState()
-        clearPublishState(network.id)
+        const {networks, clearPublishState, setPublishedList} = usePublishStore.getState()
+        for (const [id, state] of Object.entries(networks)) {
+            if (
+                state.status === PublishStatus.Published &&
+                state.serverUrl === published.serverUrl &&
+                state.publishId === published.publishId
+            ) {
+                clearPublishState(id)
+            }
+        }
         setPublishedList(null)
+        return true
     } catch (e) {
         sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))
+        return false
     }
 }
