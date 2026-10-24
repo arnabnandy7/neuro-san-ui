@@ -57,15 +57,25 @@ interface PublishStore {
     readonly publishedList: PublishedList | null
     readonly setPublishedList: (publishedList: PublishedList | null) => void
     readonly publishedListRevision: number
-    readonly invalidatePublishedList: () => void
+    /** Successful deletions, keyed by server and deployment id, with their invalidation revision. */
+    readonly unpublishedDeployments: Readonly<Record<string, number>>
+    readonly recordUnpublishedDeployment: (serverUrl: string, publishId: string) => void
 }
 
 export const usePublishStore = create<PublishStore>()((set) => ({
     networks: {},
     publishedList: null,
     publishedListRevision: 0,
-    invalidatePublishedList: () =>
-        set(({publishedListRevision}) => ({publishedList: null, publishedListRevision: publishedListRevision + 1})),
+    unpublishedDeployments: {},
+    recordUnpublishedDeployment: (serverUrl, publishId) =>
+        set(({publishedListRevision, unpublishedDeployments}) => ({
+            publishedList: null,
+            publishedListRevision: publishedListRevision + 1,
+            unpublishedDeployments: {
+                ...unpublishedDeployments,
+                [JSON.stringify([serverUrl, publishId])]: publishedListRevision + 1,
+            },
+        })),
     setPublishedList: (publishedList) => set({publishedList}),
     setPublishState: (networkId, publishState) =>
         set(({networks}) => ({networks: {...networks, [networkId]: publishState}})),
