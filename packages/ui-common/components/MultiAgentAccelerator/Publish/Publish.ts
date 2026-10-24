@@ -69,8 +69,9 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
     try {
         const published = (await request).find((candidate) => candidate.name === network.name)
 
-        // Don't overwrite a publish the user started while we were asking
-        if (!published || usePublishStore.getState().networks[network.id]) return
+        // Ignore invalidated lookups and don't overwrite a publish started while we were asking.
+        const current = usePublishStore.getState()
+        if (current.publishedList?.request !== request || !published || current.networks[network.id]) return
 
         usePublishStore.getState().setPublishState(network.id, {
             status: PublishStatus.Published,
