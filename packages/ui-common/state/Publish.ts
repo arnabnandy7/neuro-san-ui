@@ -56,11 +56,16 @@ interface PublishStore {
     readonly clearPublishState: (networkId: string) => void
     readonly publishedList: PublishedList | null
     readonly setPublishedList: (publishedList: PublishedList | null) => void
+    readonly publishedListRevision: number
+    readonly invalidatePublishedList: () => void
 }
 
 export const usePublishStore = create<PublishStore>()((set) => ({
     networks: {},
     publishedList: null,
+    publishedListRevision: 0,
+    invalidatePublishedList: () =>
+        set(({publishedListRevision}) => ({publishedList: null, publishedListRevision: publishedListRevision + 1})),
     setPublishedList: (publishedList) => set({publishedList}),
     setPublishState: (networkId, publishState) =>
         set(({networks}) => ({networks: {...networks, [networkId]: publishState}})),
