@@ -19,6 +19,7 @@ import {create} from "zustand"
 import {useEnvironmentStore} from "./Environment"
 import {useSettingsStore} from "./Settings"
 import {PublishedNetwork} from "../controller/publish/Publish"
+import {stripTrailingSlash} from "../utils/Url"
 
 export enum PublishStatus {
     Publishing = "Publishing",
@@ -73,7 +74,7 @@ export const usePublishStore = create<PublishStore>()((set) => ({
             publishedListRevision: publishedListRevision + 1,
             unpublishedDeployments: {
                 ...unpublishedDeployments,
-                [JSON.stringify([serverUrl, publishId])]: publishedListRevision + 1,
+                [JSON.stringify([stripTrailingSlash(serverUrl), publishId])]: publishedListRevision + 1,
             },
         })),
     setPublishedList: (publishedList) => set({publishedList}),
