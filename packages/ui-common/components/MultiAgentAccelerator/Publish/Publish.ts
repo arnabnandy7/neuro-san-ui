@@ -80,6 +80,7 @@ export const checkIfPublished = async (network: PublishNetwork, {serverUrl, orgN
             url: published.url,
         })
     } catch (e) {
+        if (usePublishStore.getState().publishedList?.request !== request) return
         setPublishedList(null)
         console.warn(`Unable to check whether "${network.name}" is published:`, e)
     }
@@ -116,7 +117,7 @@ export const unpublish = async (network: PublishNetwork, published: Published): 
     try {
         await unpublishNetwork(published.serverUrl, published.publishId)
         // The shared list still has it as live, so drop the list too
-        const {networks, clearPublishState, setPublishedList} = usePublishStore.getState()
+        const {networks, clearPublishState, invalidatePublishedList} = usePublishStore.getState()
         for (const [id, state] of Object.entries(networks)) {
             if (
                 state.status === PublishStatus.Published &&
@@ -126,7 +127,7 @@ export const unpublish = async (network: PublishNetwork, published: Published): 
                 clearPublishState(id)
             }
         }
-        setPublishedList(null)
+        invalidatePublishedList()
         return true
     } catch (e) {
         sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))

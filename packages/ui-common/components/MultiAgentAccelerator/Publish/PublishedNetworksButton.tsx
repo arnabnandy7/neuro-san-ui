@@ -20,15 +20,19 @@ import {FC, useState} from "react"
 
 import {PUBLISH_SETTINGS_REQUIRED_MESSAGE} from "./Publish"
 import {PublishedNetworksDialog} from "./PublishedNetworksDialog"
+import {useEnvironmentStore} from "../../../state/Environment"
 import {usePublishServerUrl} from "../../../state/Publish"
 import {useSettingsStore} from "../../../state/Settings"
 
 /** Opens the org's published sites, including those whose source networks are gone. */
 export const PublishedNetworksButton: FC = () => {
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
     const serverUrl = usePublishServerUrl()
     const orgName = useSettingsStore((state) => state.settings.publish.orgName)
     const [isOpen, setIsOpen] = useState(false)
     const isConfigured = Boolean(serverUrl && orgName)
+
+    if (!enablePublishing) return null
 
     return (
         <>

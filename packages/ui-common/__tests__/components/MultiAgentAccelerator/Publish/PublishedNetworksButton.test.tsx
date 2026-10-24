@@ -6,6 +6,7 @@ import {sendNotification} from "../../../../components/Common/notification"
 import {PublishButton} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
 import {PublishedNetworksButton} from "../../../../components/MultiAgentAccelerator/Publish/PublishedNetworksButton"
 import {listPublishedNetworks, unpublishNetwork} from "../../../../controller/publish/Publish"
+import {useEnvironmentStore} from "../../../../state/Environment"
 import {PublishStatus, usePublishStore} from "../../../../state/Publish"
 import {useSettingsStore} from "../../../../state/Settings"
 
@@ -20,11 +21,15 @@ describe("PublishedNetworksButton", () => {
     withStrictMocks()
 
     beforeEach(() => {
+        useEnvironmentStore.setState(useEnvironmentStore.getInitialState())
+        useEnvironmentStore.getState().setEnablePublishing(true)
         usePublishStore.setState(usePublishStore.getInitialState())
         useSettingsStore.getState().resetSettings()
         useSettingsStore.getState().updateSettings({publish: {serverUrl: SERVER_URL, orgName: ORG_NAME}})
         vi.mocked(listPublishedNetworks).mockResolvedValue([NETWORK])
-        vi.mocked(unpublishNetwork).mockResolvedValue()
+        vi.mocked(unpublishNetwork).mockImplementation(async () => {
+            vi.mocked(listPublishedNetworks).mockResolvedValue([])
+        })
     })
 
     const openList = async () => {
@@ -232,6 +237,92 @@ describe("PublishedNetworksButton", () => {
         await user.click(screen.getByRole("button", {name: "close"}))
         expect(await screen.findByRole("button", {name: "Publish"})).toBeInTheDocument()
         expect(screen.queryByRole("button", {name: "View live"})).not.toBeInTheDocument()
+    })
+
+    it("should hide management when publishing is disabled despite saved settings", () => {
+        useEnvironmentStore.getState().setEnablePublishing(false)
+        render(<PublishedNetworksButton />)
+        expect(screen.queryByRole("button", {name: "Published networks"})).not.toBeInTheDocument()
+        expect(listPublishedNetworks).not.toHaveBeenCalled()
+    })
+
+    it("should preserve a newer lookup when the previous server's lookup fails", async () => {
+        let rejectOld!: (error: Error) => void
+        let resolveNew!: (networks: (typeof NETWORK)[]) => void
+        vi.mocked(listPublishedNetworks)
+            .mockReturnValueOnce(
+                new Promise((_resolve, reject) => {
+                    rejectOld = reject
+                })
+            )
+            .mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveNew = resolve
+                })
+            )
+        render(
+            <PublishButton
+                displayName="Bakery"
+                hocon="{}"
+                id="publish"
+                networkId="local-network"
+                networkName={NETWORK.name}
+            />
+        )
+        act(() =>
+            useSettingsStore.getState().updateSettings({publish: {serverUrl: "https://other.test", orgName: "other"}})
+        )
+        await waitFor(() => expect(listPublishedNetworks).toHaveBeenLastCalledWith("https://other.test", "other"))
+        await act(async () => rejectOld(new Error("Previous server unavailable")))
+        await act(async () => resolveNew([NETWORK]))
+        expect(await screen.findByRole("button", {name: "View live"})).toBeInTheDocument()
+        expect(listPublishedNetworks).toHaveBeenCalledTimes(2)
+    })
+
+    it("should refresh both mounted networks after unpublishing during their shared lookup", async () => {
+        const otherNetwork = {id: "dep-other", name: "other", url: "https://live.test/other"}
+        let resolveOld!: (networks: (typeof NETWORK)[]) => void
+        vi.mocked(listPublishedNetworks)
+            .mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveOld = resolve
+                })
+            )
+            .mockResolvedValueOnce([NETWORK, otherNetwork])
+        vi.mocked(unpublishNetwork).mockImplementation(async () => {
+            vi.mocked(listPublishedNetworks).mockResolvedValue([otherNetwork])
+        })
+        const user = userEvent.setup()
+        render(
+            <>
+                <PublishButton
+                    displayName="Bakery"
+                    hocon="{}"
+                    id="publish"
+                    networkId="local-network"
+                    networkName={NETWORK.name}
+                />
+                <PublishButton
+                    displayName="Other"
+                    hocon="{}"
+                    id="other-publish"
+                    networkId="other-network"
+                    networkName={otherNetwork.name}
+                />
+                <PublishedNetworksButton />
+            </>
+        )
+        expect(listPublishedNetworks).toHaveBeenCalledTimes(1)
+        await user.click(screen.getByRole("button", {name: "Published networks"}))
+        const site = await screen.findByRole("region", {name: NETWORK.name})
+        await user.click(within(site).getByRole("button", {name: "Unpublish"}))
+        await user.click(within(screen.getAllByRole("dialog").at(-1)).getByRole("button", {name: "Unpublish"}))
+        await waitFor(() => expect(screen.queryByRole("region", {name: NETWORK.name})).not.toBeInTheDocument())
+        await act(async () => resolveOld([NETWORK, otherNetwork]))
+        await user.click(screen.getByRole("button", {name: "close"}))
+        expect(await screen.findByRole("button", {name: "Publish"})).toBeInTheDocument()
+        expect(screen.getByRole("button", {name: "View live"})).toBeInTheDocument()
+        expect(listPublishedNetworks).toHaveBeenCalledTimes(3)
     })
 
     it("should disable management until the publish settings are configured", () => {
