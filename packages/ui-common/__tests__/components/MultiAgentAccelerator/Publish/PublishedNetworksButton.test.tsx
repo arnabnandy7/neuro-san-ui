@@ -202,6 +202,38 @@ describe("PublishedNetworksButton", () => {
         expect(screen.getByRole("button", {name: "View live"})).toBeInTheDocument()
     })
 
+    it("should not restore a live indicator when an old lookup resolves after unpublishing", async () => {
+        let resolveLookup!: (networks: (typeof NETWORK)[]) => void
+        vi.mocked(listPublishedNetworks).mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveLookup = resolve
+            })
+        )
+        const user = userEvent.setup()
+        render(
+            <>
+                <PublishButton
+                    displayName="Bakery"
+                    hocon="{}"
+                    id="publish"
+                    networkId="local-network"
+                    networkName={NETWORK.name}
+                />
+                <PublishedNetworksButton />
+            </>
+        )
+        expect(screen.getByRole("button", {name: "Publish"})).toBeInTheDocument()
+        await user.click(screen.getByRole("button", {name: "Published networks"}))
+        await user.click(await screen.findByRole("button", {name: "Unpublish"}))
+        await user.click(within(screen.getAllByRole("dialog").at(-1)).getByRole("button", {name: "Unpublish"}))
+        await screen.findByText("No published networks.")
+        expect(unpublishNetwork).toHaveBeenCalledWith(SERVER_URL, NETWORK.id)
+        await act(async () => resolveLookup([NETWORK]))
+        await user.click(screen.getByRole("button", {name: "close"}))
+        expect(await screen.findByRole("button", {name: "Publish"})).toBeInTheDocument()
+        expect(screen.queryByRole("button", {name: "View live"})).not.toBeInTheDocument()
+    })
+
     it("should disable management until the publish settings are configured", () => {
         useSettingsStore.getState().updateSettings({publish: {serverUrl: null, orgName: ""}})
         render(<PublishedNetworksButton />)
