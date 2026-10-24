@@ -158,10 +158,18 @@ describe("PublishedNetworksButton", () => {
         })
         expect(otherUnpublish).toBeDisabled()
         expect(unpublishNetwork).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole("button", {name: "close"})).not.toBeInTheDocument()
+        await waitFor(() => expect(screen.queryByText("Unpublish this network?")).not.toBeInTheDocument())
+        await user.tab()
+        await user.keyboard("{Escape}")
+        expect(screen.getByRole("dialog")).toBeInTheDocument()
+        expect(screen.getByRole("region", {name: NETWORK.name})).toBeInTheDocument()
         await act(async () => finishUnpublish())
         await waitFor(() => expect(screen.queryByRole("region", {name: NETWORK.name})).not.toBeInTheDocument())
         expect(otherUnpublish).toBeEnabled()
         expect(screen.getByRole("button", {name: "Refresh"})).toBeEnabled()
+        await user.click(screen.getByRole("button", {name: "close"}))
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     })
 
     it("should clear matching live indicators and preserve unrelated published networks", async () => {

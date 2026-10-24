@@ -81,7 +81,10 @@ export const PublishedNetworksDialog: FC<PublishedNetworksDialogProps> = ({onClo
             <MUIDialog
                 id="published-networks-dialog"
                 isOpen={true}
-                onClose={onClose}
+                closeable={!isUnpublishing}
+                onClose={() => {
+                    if (!isUnpublishing) onClose()
+                }}
                 title="Published networks"
                 paperProps={{width: "36rem", maxWidth: "100%"}}
                 footer={
