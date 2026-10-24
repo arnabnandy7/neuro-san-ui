@@ -16,6 +16,7 @@ limitations under the License.
 
 import {listPublishedNetworks, publishNetwork, unpublishNetwork} from "../../../controller/publish/Publish"
 import {Published, PublishStatus, usePublishStore} from "../../../state/Publish"
+import {stripTrailingSlash} from "../../../utils/Url"
 import {NotificationType, sendNotification} from "../../Common/notification"
 
 export const PUBLISH_SETTINGS_REQUIRED_MESSAGE =
@@ -101,7 +102,7 @@ export const publish = async (
     try {
         const ready = await publishNetwork({serverUrl, orgName, networkName: network.name, hocon})
         const deletedAtRevision =
-            usePublishStore.getState().unpublishedDeployments[JSON.stringify([serverUrl, ready.id])]
+            usePublishStore.getState().unpublishedDeployments[JSON.stringify([stripTrailingSlash(serverUrl), ready.id])]
         if (deletedAtRevision > startedAtRevision) {
             clearPublishState(network.id)
             return
@@ -127,7 +128,7 @@ export const unpublish = async (network: PublishNetwork, published: Published): 
         for (const [id, state] of Object.entries(networks)) {
             if (
                 state.status === PublishStatus.Published &&
-                state.serverUrl === published.serverUrl &&
+                stripTrailingSlash(state.serverUrl) === stripTrailingSlash(published.serverUrl) &&
                 state.publishId === published.publishId
             ) {
                 clearPublishState(id)
