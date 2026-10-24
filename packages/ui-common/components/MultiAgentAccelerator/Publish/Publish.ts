@@ -95,11 +95,17 @@ export const publish = async (
     hocon: string,
     {serverUrl, orgName}: PublishTarget
 ): Promise<void> => {
-    const {clearPublishState, setPublishState} = usePublishStore.getState()
+    const {clearPublishState, setPublishState, publishedListRevision: startedAtRevision} = usePublishStore.getState()
     setPublishState(network.id, {status: PublishStatus.Publishing})
 
     try {
         const ready = await publishNetwork({serverUrl, orgName, networkName: network.name, hocon})
+        const deletedAtRevision =
+            usePublishStore.getState().unpublishedDeployments[JSON.stringify([serverUrl, ready.id])]
+        if (deletedAtRevision > startedAtRevision) {
+            clearPublishState(network.id)
+            return
+        }
         setPublishState(network.id, {status: PublishStatus.Published, serverUrl, publishId: ready.id, url: ready.url})
 
         const message = openInNewTab(ready.url) ? PUBLISHED_MESSAGE : PUBLISHED_TAB_BLOCKED_MESSAGE
@@ -117,7 +123,7 @@ export const unpublish = async (network: PublishNetwork, published: Published): 
     try {
         await unpublishNetwork(published.serverUrl, published.publishId)
         // The shared list still has it as live, so drop the list too
-        const {networks, clearPublishState, invalidatePublishedList} = usePublishStore.getState()
+        const {networks, clearPublishState, recordUnpublishedDeployment} = usePublishStore.getState()
         for (const [id, state] of Object.entries(networks)) {
             if (
                 state.status === PublishStatus.Published &&
@@ -127,7 +133,7 @@ export const unpublish = async (network: PublishNetwork, published: Published): 
                 clearPublishState(id)
             }
         }
-        invalidatePublishedList()
+        recordUnpublishedDeployment(published.serverUrl, published.publishId)
         return true
     } catch (e) {
         sendNotification(NotificationType.error, `Failed to unpublish "${network.name}".`, String(e))

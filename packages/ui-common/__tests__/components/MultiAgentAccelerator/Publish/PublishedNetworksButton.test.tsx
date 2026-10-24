@@ -5,7 +5,7 @@ import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {sendNotification} from "../../../../components/Common/notification"
 import {PublishButton} from "../../../../components/MultiAgentAccelerator/Publish/PublishButton"
 import {PublishedNetworksButton} from "../../../../components/MultiAgentAccelerator/Publish/PublishedNetworksButton"
-import {listPublishedNetworks, unpublishNetwork} from "../../../../controller/publish/Publish"
+import {listPublishedNetworks, publishNetwork, unpublishNetwork} from "../../../../controller/publish/Publish"
 import {useEnvironmentStore} from "../../../../state/Environment"
 import {PublishStatus, usePublishStore} from "../../../../state/Publish"
 import {useSettingsStore} from "../../../../state/Settings"
@@ -245,6 +245,52 @@ describe("PublishedNetworksButton", () => {
         await user.click(screen.getByRole("button", {name: "close"}))
         expect(await screen.findByRole("button", {name: "Publish"})).toBeInTheDocument()
         expect(screen.queryByRole("button", {name: "View live"})).not.toBeInTheDocument()
+    })
+
+    it("should ignore a delayed publish completion after unpublishing but allow a later publish", async () => {
+        const openSpy = vi.spyOn(window, "open").mockReturnValue({opener: window} as Window)
+        let finishPublish!: (network: typeof NETWORK) => void
+        vi.mocked(listPublishedNetworks).mockResolvedValueOnce([])
+        vi.mocked(publishNetwork).mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishPublish = resolve
+            })
+        )
+        const user = userEvent.setup()
+        render(
+            <>
+                <PublishButton
+                    displayName="Bakery"
+                    hocon="{}"
+                    id="publish"
+                    networkId="local-network"
+                    networkName={NETWORK.name}
+                />
+                <PublishedNetworksButton />
+            </>
+        )
+        await user.click(screen.getByRole("button", {name: "Publish"}))
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", {name: "Publish"}))
+        await screen.findByText("Putting it online...")
+        await user.keyboard("{Escape}")
+        await waitFor(() => expect(screen.queryByText("Putting it online...")).not.toBeInTheDocument())
+        await user.click(screen.getByRole("button", {name: "Published networks"}))
+        await user.click(await screen.findByRole("button", {name: "Unpublish"}))
+        await user.click(within(screen.getAllByRole("dialog").at(-1)).getByRole("button", {name: "Unpublish"}))
+        await screen.findByText("No published networks.")
+        await act(async () => finishPublish(NETWORK))
+        await user.click(screen.getByRole("button", {name: "close"}))
+        expect(await screen.findByRole("button", {name: "Publish"})).toBeInTheDocument()
+        expect(screen.queryByRole("button", {name: "View live"})).not.toBeInTheDocument()
+        expect(openSpy).not.toHaveBeenCalled()
+        expect(sendNotification).not.toHaveBeenCalled()
+
+        vi.mocked(publishNetwork).mockResolvedValue(NETWORK)
+        await user.click(screen.getByRole("button", {name: "Publish"}))
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", {name: "Publish"}))
+        expect(await screen.findByRole("button", {name: "View live"})).toBeInTheDocument()
+        expect(openSpy).toHaveBeenCalledTimes(1)
+        expect(openSpy).toHaveBeenCalledWith(NETWORK.url, "_blank")
     })
 
     it("should hide management when publishing is disabled despite saved settings", () => {
