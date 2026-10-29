@@ -91,7 +91,7 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
     const scheduleWaitReminder = useCallback((delay: number) => {
         clearTimeout(waitReminderTimeoutRef.current)
         waitReminderTimeoutRef.current = setTimeout(() => {
-            setState((currentState) => (currentState === "applying" ? "confirmingWait" : currentState))
+            setState("confirmingWait")
         }, delay)
     }, [])
 
