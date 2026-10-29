@@ -4,7 +4,11 @@ import {userEvent, UserEvent} from "@testing-library/user-event"
 import {makeTempNetwork} from "../../../../../../__tests__/common/NetworksListMock"
 import {withStrictMocks} from "../../../../../../__tests__/common/strictMocks"
 import {TEMPORARY_NETWORK_FOLDER} from "../../../../components/MultiAgentAccelerator/const"
-import {BANNER_AUTO_DISMISS_MS} from "../../../../components/MultiAgentAccelerator/Editor/Const"
+import {
+    BANNER_AUTO_DISMISS_MS,
+    INITIAL_WAIT_REMINDER_MS,
+    REPEATED_WAIT_REMINDER_MS,
+} from "../../../../components/MultiAgentAccelerator/Editor/Const"
 import {
     NetworkEditorDock,
     NetworkEditorDockProps,
@@ -31,6 +35,7 @@ const EDIT_PROMPT = "Add a node"
 const ELVES_PROMPT = "add some elves to check work"
 const FAILED_BANNER = "Failed to apply network change."
 const KEEP_APPLYING_BUTTON = "Keep applying"
+const LONG_WAIT_TITLE = "This operation is taking longer than expected."
 // display_as value marking an editable LLM agent node.
 const PROMPT_PLACEHOLDER = "Describe a change to the network"
 // These buttons render a ■ startIcon, so their accessible name isn't a clean string; match the label.
@@ -315,7 +320,7 @@ describe("NetworkEditorDock", () => {
         expect(screen.getByRole("button", {name: APPLY_BUTTON})).toBeEnabled()
     })
 
-    it("keeps applying when a network edit takes longer than two minutes", async () => {
+    it("asks whether to keep waiting after three minutes and repeats the reminder after one minute", async () => {
         vi.useFakeTimers()
 
         // Create a custom UserEvent that is synced with Vitest's fake timers
@@ -323,16 +328,11 @@ describe("NetworkEditorDock", () => {
             advanceTimers: vi.advanceTimersByTime,
         })
 
-        let releaseRequest!: () => void
         let capturedSignal: AbortSignal | undefined
-        mockSendChatQuery.mockImplementation((_url, signal, _query, _agent, chunkCallback) => {
+        mockSendChatQuery.mockImplementation((_url, signal) => {
             capturedSignal = signal
-            return new Promise<ChatResponse>((resolve, reject) => {
+            return new Promise<ChatResponse>((_resolve, reject) => {
                 signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")))
-                releaseRequest = () => {
-                    chunkCallback(makeDockReservationChunk(DOCK_DEFAULT_RES, DOCK_NETWORK_NAME))
-                    resolve({} satisfies ChatResponse)
-                }
             })
         })
 
@@ -345,20 +345,31 @@ describe("NetworkEditorDock", () => {
         const applyButton = screen.getByRole("button", {name: APPLY_BUTTON})
         await localUser.click(applyButton)
 
-        // Advance past the three-minute dock apply timeout previously configured here.
+        // The three-minute threshold asks the user what to do without aborting the request.
         act(() => {
-            vi.advanceTimersByTime(181_000)
+            vi.advanceTimersByTime(INITIAL_WAIT_REMINDER_MS)
         })
 
         expect(capturedSignal?.aborted).toBe(false)
-        expect(screen.getByText(APPLYING_TITLE)).toBeVisible()
-        expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument()
+        expect(screen.getByText(LONG_WAIT_TITLE)).toBeVisible()
+        screen.getByText("Would you like to continue waiting or cancel?")
 
-        await act(async () => {
-            releaseRequest()
+        await localUser.click(screen.getByRole("button", {name: "Continue waiting"}))
+        expect(screen.getByText(APPLYING_TITLE)).toBeVisible()
+
+        // Continuing schedules another reminder one minute later and still does not abort.
+        act(() => {
+            vi.advanceTimersByTime(REPEATED_WAIT_REMINDER_MS)
         })
 
-        await screen.findByText(APPLIED_BANNER)
+        expect(capturedSignal?.aborted).toBe(false)
+        expect(screen.getByText(LONG_WAIT_TITLE)).toBeVisible()
+
+        await localUser.click(screen.getByRole("button", {name: "Cancel"}))
+
+        expect(capturedSignal?.aborted).toBe(true)
+        await screen.findByText(CANCELLED_BANNER)
+        expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument()
     })
 
     it("deduplicates reservations when two chunks with the same name but different expiry arrive", async () => {
