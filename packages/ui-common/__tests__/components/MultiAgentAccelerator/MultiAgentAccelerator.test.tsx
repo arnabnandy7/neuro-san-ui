@@ -1539,6 +1539,7 @@ describe("MultiAgentAccelerator", () => {
                 expectedMissing: false,
             },
             {required: [LLM_PROVIDER_API_KEY_FIELD["Anthropic"]], expectedMissing: false},
+            {required: [LLM_PROVIDER_API_KEY_FIELD["Google"]], expectedMissing: false},
             {required: [badProvider as ByokKeyField], expectedMissing: false},
             {required: [], expectedMissing: false},
             {required: undefined, expectedMissing: false},
@@ -1589,6 +1590,84 @@ describe("MultiAgentAccelerator", () => {
                     selectedNetwork: `${TEST_AGENTS_FOLDER}/${TEST_AGENT_MATH_GUY}`,
                     hasMissingApiKeys: expectedMissing,
                 })
+            )
+        })
+
+        it("passes extraSlyData through to AgentFlow when present", async () => {
+            useTempNetworksStore.setState({tempNetworks: [tempNetworkWithDefinition]})
+
+            renderMultiAgentAccelerator()
+            await screen.findByText("Agent Networks")
+
+            await act(async () => {
+                setSelectedNetwork(TEMPORARY_NETWORK.agentInfo.agent_name)
+            })
+
+            await waitFor(() => {
+                expect(agentFlowMock).toHaveBeenCalledWith(
+                    expect.objectContaining<Partial<AgentFlowProps>>({
+                        isTemporaryNetwork: true,
+                        networkId: TEMPORARY_NETWORK.agentInfo.agent_name,
+                        extraSlyData: {
+                            [AGENT_NETWORK_DEFINITION_KEY]: agentNetworkDefinition,
+                            [AGENT_NETWORK_NAME_KEY]: TEMPORARY_NETWORK.agentNetworkName,
+                            [AGENT_NETWORK_HOCON]: TEMPORARY_NETWORK.networkHocon,
+                        },
+                    })
+                )
+            })
+        })
+
+        it("passes extraSlyData through when saving via streamNetworkDesignerUpsert", async () => {
+            const updatedDefinition: AgentNetworkDefinitionEntry[] = [{origin: "copy_cat", tools: []}]
+
+            const expectedExtraSlyData = {
+                [AGENT_NETWORK_DEFINITION_KEY]: agentNetworkDefinition,
+                [AGENT_NETWORK_NAME_KEY]: TEMPORARY_NETWORK.agentNetworkName,
+                [AGENT_NETWORK_HOCON]: TEMPORARY_NETWORK.networkHocon,
+            }
+
+            useTempNetworksStore.setState({tempNetworks: [tempNetworkWithDefinition]})
+
+            vi.mocked(sendNetworkDesignerRequest).mockImplementation(async (...args: unknown[]) => {
+                const onChunk = args[6] as (chunk: string) => void
+                onChunk(JSON.stringify(RESERVATION_CHAT_MESSAGE))
+            })
+
+            renderMultiAgentAccelerator()
+            await screen.findByText("Agent Networks")
+
+            await act(async () => {
+                setSelectedNetwork(TEMPORARY_NETWORK.agentInfo.agent_name)
+            })
+
+            // Wait until AgentFlow has the updated onSaveAgent closure with extraSlyData in scope.
+            await waitFor(() => {
+                expect(agentFlowMock).toHaveBeenCalledWith(
+                    expect.objectContaining<Partial<AgentFlowProps>>({
+                        extraSlyData: expectedExtraSlyData,
+                    })
+                )
+            })
+
+            await act(async () => {
+                await onSaveAgent(
+                    "copy_cat",
+                    updatedDefinition,
+                    RESERVATION.reservation_id,
+                    new AbortController().signal
+                )
+            })
+
+            expect(sendNetworkDesignerRequest).toHaveBeenCalledWith(
+                NEURO_SAN_SERVER_URL,
+                expect.any(AbortSignal),
+                "copy_cat",
+                updatedDefinition,
+                RESERVATION.reservation_id,
+                MOCK_USER,
+                expect.any(Function),
+                expectedExtraSlyData
             )
         })
 

@@ -32,7 +32,7 @@ type DeepPartial<T> = {
     [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
 }
 
-export type LLMProvider = "OpenAI" | "Anthropic"
+export type LLMProvider = "OpenAI" | "Anthropic" | "Google"
 
 export type LogoSource = "none" | "generic" | "auto"
 
@@ -85,6 +85,12 @@ interface Settings {
     readonly externalServices: {
         neuroSanUrl: string | null
     }
+    readonly publish: {
+        /** Publish server that networks are published to. Overrides the default from the environment when set. */
+        readonly serverUrl: string | null
+        /** Sent as org_name with every publish. Required to publish. */
+        readonly orgName: string | null
+    }
 }
 
 /**
@@ -104,6 +110,7 @@ interface SettingsStore {
 export const LLM_PROVIDER_API_KEY_FIELD = {
     OpenAI: "openai_api_key",
     Anthropic: "anthropic_api_key",
+    Google: "google_api_key",
 } as const satisfies Record<LLMProvider, string>
 
 /**
@@ -139,6 +146,10 @@ export const DEFAULT_SETTINGS: Settings = {
     externalServices: {
         neuroSanUrl: null,
     },
+    publish: {
+        serverUrl: null,
+        orgName: null,
+    },
 }
 
 // Name for key where main app settings are saved
@@ -149,7 +160,7 @@ export const SESSION_API_KEYS_STORAGE_KEY = "app-settings-api-keys"
 
 // TTL for API keys in sessionStorage. After this time, the keys will be cleared from sessionStorage.
 // This is a backstop for cases where users rarely close their browser or tabs
-export const API_KEYS_TTL_MS = 2 * 24 * 60 * 60 * 1000 // 2 days
+export const API_KEYS_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 //#endregion Constants
 
@@ -161,7 +172,7 @@ const hasPersistedSettings = (state: unknown): state is {settings: DeepPartial<S
     state.settings !== null
 
 /**
- * Purges any persisted API keys from localStorage. This cleans up from previous versions of the cdoe.
+ * Purges any persisted API keys from localStorage. This cleans up from previous versions of the code.
  * Once we are "reasonably sure" that no users are on old versions, we can remove this function.
  */
 const purgePersistedApiKeys = () => {

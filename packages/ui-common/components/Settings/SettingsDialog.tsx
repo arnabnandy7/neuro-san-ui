@@ -9,98 +9,30 @@ import IconButton from "@mui/material/IconButton"
 import InputAdornment from "@mui/material/InputAdornment"
 import MenuItem from "@mui/material/MenuItem"
 import Select, {SelectChangeEvent} from "@mui/material/Select"
-import {createTheme, styled, ThemeProvider, useTheme} from "@mui/material/styles"
+import {createTheme, ThemeProvider, useTheme} from "@mui/material/styles"
 import TextField from "@mui/material/TextField"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Tooltip from "@mui/material/Tooltip"
 import Typography from "@mui/material/Typography"
-import {
-    ComponentPropsWithoutRef,
-    FC,
-    ChangeEvent as ReactChangeEvent,
-    MouseEvent as ReactMouseEvent,
-    ReactNode,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react"
+import {FC, ChangeEvent as ReactChangeEvent, MouseEvent as ReactMouseEvent, useEffect, useMemo, useState} from "react"
 
-import {ApiKeyErrorBanner, ApiKeyFailure} from "./ApiKeyErrorBanner"
-import {ApiKeyInput} from "./ApiKeyInput"
+import {ByokInputs, ByokStorageTooltip, ByokUnsavedChangesModal, useByokKeyManager} from "./Byok"
 import {useCheckmarkFade} from "./FadingCheckmark"
+import {PublishSettings} from "./PublishSettings"
+import {Section, SettingsSectionTitle, SettingsSubsection, SubSection, SubSectionBody} from "./SettingsLayout"
 import {SettingsRow} from "./SettingsRow"
 import {getBrandingSuggestions, testConnection, TestConnectionResult} from "../../controller/agent/Agent"
-import {
-    isAnthropicKeyValid,
-    isOpenAIKeyValid,
-    KeyValidationFailure,
-    KeyValidationResult,
-} from "../../controller/llm/Providers"
 import {BrandingSuggestions} from "../../controller/Types/Branding"
 import {useEnvironmentStore} from "../../state/Environment"
-import {
-    API_KEYS_TTL_MS,
-    DEFAULT_SETTINGS,
-    getApiKey,
-    LLMProvider,
-    PaletteKey,
-    useSettingsStore,
-} from "../../state/Settings"
+import {DEFAULT_SETTINGS, PaletteKey, useSettingsStore} from "../../state/Settings"
 import {PALETTES} from "../../Theme/Palettes"
+import {normalizeUrlInput, Protocol, stripProtocol} from "../../utils/Url"
 import {ConfirmationModal} from "../Common/ConfirmationModal"
 import {MUIDialog} from "../Common/MUIDialog"
 import {NotificationType, sendNotification} from "../Common/notification"
 import {StatusLight} from "../Common/StatusLight"
 import {CustomerLogo} from "../Logo/CustomerLogo"
-
-//#region: Styled Components
-
-const SettingsSectionTitleBase: FC<ComponentPropsWithoutRef<typeof Typography>> = (props) => (
-    <Typography
-        variant="h6"
-        {...props}
-    />
-)
-
-const SettingsSectionTitle = styled(SettingsSectionTitleBase)(({theme}) => ({
-    marginBottom: theme.spacing(0.5),
-}))
-
-const Section = styled(Box)(({theme}) => ({
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-}))
-
-const SubsectionTitle = styled(Typography)(({theme}) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    color: theme.palette.text.secondary,
-    fontWeight: 600,
-    paddingBottom: theme.spacing(0.5),
-    marginBottom: theme.spacing(1.5),
-    width: "100%",
-}))
-
-const SubSection = styled(Box)(({theme}) => ({
-    alignItems: "start",
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(4),
-}))
-
-const SubSectionBody = styled(Box)(({theme}) => ({
-    alignContent: "center",
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2.5),
-    width: "100%",
-}))
-
-//#endregion: Styled Components
 
 //#region: Types and Interfaces
 
@@ -111,53 +43,8 @@ interface SettingsDialogProps {
     readonly onClose?: () => void
 }
 
-interface LLMProviderInputConfig {
-    checkmark: ReturnType<typeof useCheckmarkFade>
-    vendor: LLMProvider
-    idSuffix: string
-    logo: string
-    onTest: (key: string) => Promise<KeyValidationResult>
-    placeholder: string
-}
-
-interface SettingsSubsectionProps {
-    readonly title: string
-    readonly children: ReactNode
-}
-
-type Protocol = "http" | "https"
-
 //#endregion: Types and Interfaces
 
-const SettingsSubsection: FC<SettingsSubsectionProps> = ({title, children}) => (
-    <SubSection>
-        <SubsectionTitle variant="subtitle1">{title}</SubsectionTitle>
-        <SubSectionBody>{children}</SubSectionBody>
-    </SubSection>
-)
-const URL_PROTOCOL_REGEX = /^https?:\/\//iu
-const HTTP_PROTOCOL_REGEX = /^http:\/\//iu
-
-const stripProtocol = (value: string) => (value ?? "").replace(URL_PROTOCOL_REGEX, "")
-
-/**
- * Normalize a Neuro SAN URL input by stripping the protocol and determining the protocol to use.
- * @param value The input URL value to normalize.
- * @param fallbackProtocol The protocol to use if the input value does not specify one.
- * @return An object containing the normalized host and protocol.
- */
-const normalizeNeuroSanUrlInput = (value: string, fallbackProtocol: Protocol) => {
-    const trimmedValue = value.trim()
-    const hasProtocol = URL_PROTOCOL_REGEX.exec(trimmedValue)
-
-    return {
-        host: stripProtocol(trimmedValue),
-        protocol: hasProtocol ? (HTTP_PROTOCOL_REGEX.test(trimmedValue) ? "http" : "https") : fallbackProtocol,
-    } satisfies {
-        host: string
-        protocol: Protocol
-    }
-}
 export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoServiceToken, onClose}) => {
     // Settings store actions
     const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -197,17 +84,25 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     const enableZenMode = useSettingsStore((state) => state.settings.behavior.enableZenMode)
     const enableZenModeCheckmark = useCheckmarkFade()
 
-    // API keys
-    const apiKeys = useSettingsStore((state) => state.settings.apiKeys)
-    const openAIKeyCheckmark = useCheckmarkFade()
-    const anthropicKeyCheckmark = useCheckmarkFade()
-
-    // Failing key-test results, aggregated into the banner at the top of the API Keys section
-    const [keyTestResults, setKeyTestResults] = useState<Partial<Record<LLMProvider, ApiKeyFailure | null>>>({})
+    // BYOK state and unsaved changes lifecycle
+    const {
+        activeConfigs: apiKeyConfigs,
+        apiKeys,
+        handleClose: handleSettingsClose,
+        handleDiscard: handleDiscardUnsavedKeys,
+        handleKeyResultChange,
+        handleSave: handleSaveUnsavedKeys,
+        handleValueChange,
+        keyFailures,
+        persistKey,
+        showUnsavedChangesModal,
+    } = useByokKeyManager({onClose})
 
     // Native names setting
     const useNativeNames = useSettingsStore((state) => state.settings.appearance.useNativeNames)
     const nativeNamesCheckmark = useCheckmarkFade()
+
+    const enablePublishing = useEnvironmentStore((state) => state.enablePublishing)
 
     /*
         Neuro SAN URL
@@ -351,44 +246,8 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         logoCheckmark.trigger()
     }
 
-    /**
-     * Records the latest key-test result for a vendor, or clears it when result is null.
-     * @param vendor Vendor for this key: see the list in LLMProvider type
-     * @param result Validation failure to display, or null to clear
-     */
-    const handleKeyResultChange = useCallback((vendor: LLMProvider, result: KeyValidationFailure | null) => {
-        setKeyTestResults((prev) => ({
-            ...prev,
-            [vendor]: result ? {vendor, result} : null,
-        }))
-    }, [])
-
-    /**
-     * Used for both saving and removing keys.
-     * @param vendor Vendor for this key: see the list in LLMProvider type
-     * @param key Value of the key
-     * @param checkmark Checkmark to trigger on save
-     * @param now Timestamp for "now"
-     */
-    const persistKey = (
-        vendor: LLMProvider,
-        key: string,
-        checkmark: ReturnType<typeof useCheckmarkFade>,
-        now: number
-    ) => {
-        updateSettings({
-            apiKeys: {
-                [vendor]: {
-                    value: key,
-                    expiresAt: key ? now + API_KEYS_TTL_MS : 0,
-                },
-            },
-        })
-        checkmark.trigger()
-    }
-
     const handleTestConnection = async () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
 
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
@@ -403,7 +262,7 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     }
 
     const handleSaveNeuroSanUrl = () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
 
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
@@ -424,13 +283,13 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
     }
 
     const handleNeuroSanUrlBlur = () => {
-        const normalized = normalizeNeuroSanUrlInput(neuroSanUrlInput, neuroSanProtocol)
+        const normalized = normalizeUrlInput(neuroSanUrlInput, neuroSanProtocol)
         setNeuroSanProtocol(normalized.protocol)
         setNeuroSanUrlInput(normalized.host)
     }
 
     const handleResetNeuroSanUrl = () => {
-        const normalized = normalizeNeuroSanUrlInput(defaultNeuroSanUrl, "https")
+        const normalized = normalizeUrlInput(defaultNeuroSanUrl, "https")
         setNeuroSanUrlInput(normalized.host)
         setNeuroSanProtocol(normalized.protocol)
     }
@@ -442,26 +301,6 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
 
     const availablePalettes = customer && brandingRangePalette?.length > 0 ? {brand: brandingRangePalette} : PALETTES
     const paletteKeys: PaletteKey[] = Object.keys(availablePalettes) as PaletteKey[]
-
-    // Config for API key inputs, so we can easily add new providers in the future by just adding to this array
-    const apiKeyConfigs: LLMProviderInputConfig[] = [
-        {
-            checkmark: openAIKeyCheckmark,
-            idSuffix: "openai",
-            logo: theme.palette.mode === "dark" ? "/OpenAI-white.png" : "/OpenAI-black.png",
-            onTest: isOpenAIKeyValid,
-            placeholder: "sk-...",
-            vendor: "OpenAI",
-        },
-        {
-            checkmark: anthropicKeyCheckmark,
-            idSuffix: "anthropic",
-            logo: "/claude.png",
-            onTest: isAnthropicKeyValid,
-            placeholder: "sk-ant-...",
-            vendor: "Anthropic",
-        },
-    ]
 
     const getConfirmationModal = () => (
         <ConfirmationModal
@@ -567,83 +406,26 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         <Section>
             <SettingsSectionTitle>External Services</SettingsSectionTitle>
             {getNeuroSanSubsection()}
+            {enablePublishing && <PublishSettings id={`${id}-publish`} />}
         </Section>
     )
-
-    // Collect the current test failure for each vendor that has one.
-    const keyFailures: ApiKeyFailure[] = apiKeyConfigs.flatMap(({vendor}) => {
-        const failure = keyTestResults[vendor]
-        return failure ? [failure] : []
-    })
 
     const getApiKeysSection = () => (
         <Section>
             <Box sx={{display: "flex", alignItems: "center", gap: theme.spacing(1)}}>
                 <SettingsSectionTitle>API Keys</SettingsSectionTitle>
-                <Tooltip
-                    title="API keys are stored locally in your browser's memory for the duration of your session only
-                    and are only sent to the Neuro SAN service for use with the associated LLM provider when you use
-                    this application to interact with networks.
-                    Your keys are never sent to any other servers or services and are not stored on our servers.
-                    When you close this tab or your browser, your keys will be permanently cleared from memory and
-                    you will need to enter them again to use services that require them."
-                >
-                    <Typography
-                        sx={{
-                            alignSelf: "flex-start",
-                            color: "var(--bs-secondary)",
-                            cursor: "help",
-                            fontSize: "0.7rem",
-                            lineHeight: 1,
-                            mt: 0.5,
-                        }}
-                        variant="caption"
-                    >
-                        <Box
-                            component="span"
-                            sx={{mr: 0.5}}
-                        >
-                            ⓘ
-                        </Box>
-                        <Box
-                            component="span"
-                            sx={{
-                                borderBottom: "1px dashed",
-                                pb: 0.25,
-                            }}
-                        >
-                            How are my keys stored and used?
-                        </Box>
-                    </Typography>
-                </Tooltip>
+                <ByokStorageTooltip />
             </Box>
             <SettingsSubsection title="LLM Providers">
-                <ApiKeyErrorBanner
-                    failures={keyFailures}
-                    id={`${id}-api-key-error-banner`}
+                <ByokInputs
+                    apiKeys={apiKeys}
+                    configs={apiKeyConfigs}
+                    id={id}
+                    keyFailures={keyFailures}
+                    onKeyResultChange={handleKeyResultChange}
+                    onPersistKey={persistKey}
+                    onValueChange={handleValueChange}
                 />
-                <Box sx={{display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5}}>
-                    {apiKeyConfigs.map(({checkmark, vendor, idSuffix, logo, onTest, placeholder}) => (
-                        <SettingsRow
-                            checkmark={checkmark}
-                            key={`${id}-${idSuffix}`}
-                            label=""
-                            tooltip={`API key for ${vendor}.`}
-                        >
-                            <ApiKeyInput
-                                forgetKey={() => persistKey(vendor, "", checkmark, 0)}
-                                id={`${id}-${idSuffix}`}
-                                logo={logo}
-                                onResultChange={handleKeyResultChange}
-                                onSave={(key) => persistKey(vendor, key, checkmark, Date.now())}
-                                onTest={onTest}
-                                persistedValue={getApiKey(apiKeys, vendor)}
-                                placeholder={placeholder}
-                                vendor={vendor}
-                            />
-                        </SettingsRow>
-                    ))}
-                </Box>
             </SettingsSubsection>
         </Section>
     )
@@ -1096,11 +878,18 @@ export const SettingsDialog: FC<SettingsDialogProps> = ({id, isOpen, logoService
         // certain custom themes the dialog would be unreadable.
         <ThemeProvider theme={settingsTheme}>
             {resetToDefaultSettingsOpen ? getConfirmationModal() : null}
+            {showUnsavedChangesModal ? (
+                <ByokUnsavedChangesModal
+                    id={id}
+                    onDiscard={handleDiscardUnsavedKeys}
+                    onSave={handleSaveUnsavedKeys}
+                />
+            ) : null}
             <MUIDialog
                 id={id}
                 title={<Box sx={{fontSize: "1.5rem"}}>Settings</Box>}
                 isOpen={isOpen}
-                onClose={onClose}
+                onClose={handleSettingsClose}
                 paperProps={{
                     minWidth: "50%",
                     minHeight: "50%",

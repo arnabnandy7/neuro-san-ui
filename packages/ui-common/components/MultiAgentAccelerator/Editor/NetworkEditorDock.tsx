@@ -40,6 +40,10 @@ const PROMPT_PLACEHOLDER = "Describe a change to the network"
 
 export type NetworkEditorDockProps = {
     readonly currentUser: string
+    /**
+     * Extra sly_data entries to merge into each outgoing request. For example, API keys for BYOK.
+     */
+    readonly extraSlyData?: Record<string, unknown>
     readonly id: string
     readonly isEditingNetwork: boolean
     readonly networkId: string
@@ -61,6 +65,7 @@ export type NetworkEditorDockProps = {
 export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
     neuroSanURL,
     currentUser,
+    extraSlyData,
     id,
     isEditingNetwork,
     networkId,
@@ -239,6 +244,7 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
                 },
                 null,
                 {
+                    ...extraSlyData,
                     [AGENT_NETWORK_DEFINITION_KEY]: currentDefinition,
                     ...(agentNetworkName ? {[AGENT_NETWORK_NAME_KEY]: agentNetworkName} : {}),
                 },
@@ -248,7 +254,7 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
 
             return newNetworks
         },
-        [currentUser, neuroSanURL]
+        [currentUser, extraSlyData, neuroSanURL]
     )
 
     const handleApply = useCallback(async () => {
@@ -398,10 +404,11 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
                             py: 2.5,
                             borderRadius: 2,
                             maxWidth: 480,
+                            width: "calc(100% - 32px)",
                         }}
                     >
                         <CircularProgress size={24} />
-                        <Box sx={{flex: 1}}>
+                        <Box sx={{flex: 1, minWidth: 0}}>
                             <Typography
                                 variant="body1"
                                 sx={{fontWeight: "bold"}}
@@ -412,7 +419,7 @@ export const NetworkEditorDock: FC<NetworkEditorDockProps> = ({
                                 <Typography
                                     variant="body2"
                                     color="text.secondary"
-                                    sx={{mt: 0.25}}
+                                    sx={{mt: 0.25, overflowWrap: "anywhere"}}
                                 >
                                     {dockPrompt}
                                 </Typography>
